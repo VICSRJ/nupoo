@@ -1,16 +1,15 @@
 'use client'
 import {useEffect,useMemo,useState} from 'react'
-import {useRouter} from 'next/navigation'
 import {Plus,Search,PanelLeft,Sun,Moon,Trash2} from 'lucide-react'
 import {loadPages,savePages,createPage,type Page} from '@/lib/storage'
 import Editor from './Editor'
 
 export default function Workspace({initialPageId}:{initialPageId?:string}={}){
- const router=useRouter(); const [pages,setPages]=useState<Page[]>([]); const [active,setActive]=useState(''); const [sidebar,setSidebar]=useState(true); const [dark,setDark]=useState(false)
- useEffect(()=>{const p=loadPages();setPages(p);setActive(initialPageId&&p.some(x=>x.id===initialPageId)?initialPageId:(p[0]?.id||''))},[initialPageId])
+ const [pages,setPages]=useState<Page[]>([]); const [active,setActive]=useState(''); const [sidebar,setSidebar]=useState(true); const [dark,setDark]=useState(false)
+ useEffect(()=>{const p=loadPages();setPages(p);const hash=location.hash.slice(1);const requested=initialPageId||hash;setActive(requested&&p.some(x=>x.id===requested)?requested:(p[0]?.id||''))},[initialPageId])
  useEffect(()=>{if(pages.length)savePages(pages);document.documentElement.classList.toggle('dark',dark)},[pages,dark])
  const current=pages.find(p=>p.id===active); const top=useMemo(()=>pages.filter(p=>!p.parentId),[pages])
- const go=(id:string)=>{setActive(id);router.push(id==='welcome'?'/':`/${id}`)}
+ const go=(id:string)=>{setActive(id);history.replaceState(null,'',id==='welcome'?'./':'./#'+id)}
  const add=(parentId:string|null=null)=>{const p=createPage(parentId);setPages(x=>[...x,p]);go(p.id)}
  const remove=()=>{if(!current||current.id==='welcome')return;setPages(x=>x.filter(p=>p.id!==current.id));go('welcome')}
  return <div className="flex min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
