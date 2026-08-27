@@ -3,16 +3,20 @@
 import { useEffect, useState } from 'react'
 import { nanoid } from 'nanoid'
 import {
-  CheckSquare,
+  AlignLeft,
+  CheckSquare2,
+  ChevronDown,
   Code2,
   Copy,
   GripVertical,
   Heading1,
+  Heading2,
+  Heading3,
   List,
   ListOrdered,
-  MoreHorizontal,
   Plus,
   Quote,
+  TextCursorInput,
   Trash2,
   Type,
 } from 'lucide-react'
@@ -28,7 +32,7 @@ import type { Page, Block } from '@/lib/storage'
 
 const BLOCK_TYPES: Array<{ type: Block['type']; label: string }> = [
   { type: 'paragraph', label: 'Text' },
-  { type: 'heading', label: 'Heading 1' },
+  { type: 'heading', label: 'Heading' },
   { type: 'bulletList', label: 'Bulleted list' },
   { type: 'orderedList', label: 'Numbered list' },
   { type: 'taskList', label: 'Task list' },
@@ -36,8 +40,8 @@ const BLOCK_TYPES: Array<{ type: Block['type']; label: string }> = [
   { type: 'codeBlock', label: 'Code' },
 ]
 
-function escapeHtml(s: string) {
-  return s
+function escapeHtml(value: string) {
+  return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -49,22 +53,24 @@ function htmlFor(block: Block) {
   if (block.type === 'heading') return `<h${block.level || 1}>${text}</h${block.level || 1}>`
   if (block.type === 'bulletList') return `<ul><li><p>${text}</p></li></ul>`
   if (block.type === 'orderedList') return `<ol><li><p>${text}</p></li></ol>`
-  if (block.type === 'taskList') {
-    return `<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>${text}</p></li></ul>`
-  }
+  if (block.type === 'taskList') return `<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>${text}</p></li></ul>`
   if (block.type === 'blockquote') return `<blockquote><p>${text}</p></blockquote>`
   if (block.type === 'codeBlock') return `<pre><code>${text}</code></pre>`
   return `<p>${text}</p>`
 }
 
-function iconFor(type: Block['type']) {
-  if (type === 'heading') return <Heading1 size={15} />
-  if (type === 'bulletList') return <List size={15} />
-  if (type === 'orderedList') return <ListOrdered size={15} />
-  if (type === 'taskList') return <CheckSquare size={15} />
-  if (type === 'blockquote') return <Quote size={15} />
-  if (type === 'codeBlock') return <Code2 size={15} />
-  return <Type size={15} />
+function typeIcon(type: Block['type'], level?: 1 | 2 | 3) {
+  if (type === 'heading') {
+    if (level === 2) return <Heading2 size={15} strokeWidth={2.2} />
+    if (level === 3) return <Heading3 size={15} strokeWidth={2.2} />
+    return <Heading1 size={15} strokeWidth={2.2} />
+  }
+  if (type === 'bulletList') return <List size={15} strokeWidth={2.2} />
+  if (type === 'orderedList') return <ListOrdered size={15} strokeWidth={2.2} />
+  if (type === 'taskList') return <CheckSquare2 size={15} strokeWidth={2.2} />
+  if (type === 'blockquote') return <Quote size={15} strokeWidth={2.2} />
+  if (type === 'codeBlock') return <Code2 size={15} strokeWidth={2.2} />
+  return <Type size={15} strokeWidth={2.2} />
 }
 
 function labelFor(block: Block) {
@@ -74,12 +80,16 @@ function labelFor(block: Block) {
 
 function Row({
   block,
+  active,
+  onActivate,
   onUpdate,
   onDelete,
   onDuplicate,
   onAdd,
 }: {
   block: Block
+  active: boolean
+  onActivate: () => void
   onUpdate: (value: Partial<Block>) => void
   onDelete: () => void
   onDuplicate: () => void
@@ -97,11 +107,12 @@ function Row({
     ],
     content: htmlFor(block),
     immediatelyRender: false,
+    onFocus: onActivate,
     onUpdate: ({ editor: currentEditor }) => onUpdate({ text: currentEditor.getText() }),
   })
 
   useEffect(() => {
-    if (editor && !editor.isFocused && editor.getText() !== block.text) {
+    if (editor && !editor.isFocused && (editor.getText() !== block.text || editor.getHTML() !== htmlFor(block))) {
       editor.commands.setContent(htmlFor(block), false)
     }
   }, [block.text, block.type, block.level, editor])
@@ -115,6 +126,7 @@ function Row({
     onUpdate(next)
     if (editor) editor.commands.setContent(htmlFor(next), false)
     setMenuOpen(false)
+    onActivate()
   }
 
   const changeHeadingLevel = (level: 1 | 2 | 3) => {
@@ -122,66 +134,72 @@ function Row({
     onUpdate(next)
     if (editor) editor.commands.setContent(htmlFor(next), false)
     setMenuOpen(false)
+    onActivate()
   }
 
   return (
     <div
       ref={setNodeRef}
+      onFocusCapture={onActivate}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.52 : 1,
       }}
-      className="group flex min-w-0 items-start"
+      className={`group block-row relative flex min-w-0 items-start rounded-md ${active ? 'is-active' : ''}`}
     >
-      <div className="flex w-[76px] flex-none items-start justify-end gap-0.5 pr-2 pt-1">
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-label="Přidat blok"
-          className="block-control"
-        >
-          <Plus size={15} />
+      <div className={`block-toolbar flex w-[76px] flex-none items-start justify-end gap-0.5 pr-2 pt-1 ${active ? 'is-visible' : ''}`}>
+        <button type="button" onClick={onAdd} aria-label="Přidat blok" title="Přidat blok" className="block-control">
+          <Plus size={15} strokeWidth={2.3} />
         </button>
 
         <div className="relative">
           <button
             type="button"
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => setMenuOpen((value) => !value)}
-            aria-label="Změnit typ bloku"
+            aria-label={`Změnit typ: ${labelFor(block)}`}
+            title={labelFor(block)}
             aria-expanded={menuOpen}
-            className="block-control"
+            className={`block-control ${menuOpen ? 'is-pressed' : ''}`}
           >
-            {iconFor(block.type)}
+            {typeIcon(block.type, block.level)}
           </button>
 
           {menuOpen && (
-            <div className="block-type-menu" onMouseDown={(event) => event.stopPropagation()}>
-              <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Typ bloku</div>
+            <div className="block-type-menu">
+              <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Změnit typ</div>
               {BLOCK_TYPES.map((item) => (
                 <button
                   key={item.type}
                   type="button"
+                  onMouseDown={(event) => event.preventDefault()}
                   onClick={() => changeType(item.type)}
                   className={`block-type-item ${block.type === item.type ? 'is-active' : ''}`}
                 >
-                  {iconFor(item.type)}
+                  {typeIcon(item.type)}
                   <span>{item.label}</span>
+                  {block.type === item.type && <TextCursorInput size={13} className="ml-auto opacity-50" />}
                 </button>
               ))}
+
               {block.type === 'heading' && (
                 <>
-                  <div className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
-                  <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Úroveň nadpisu</div>
+                  <div className="my-1.5 border-t border-zinc-200 dark:border-zinc-800" />
+                  <div className="flex items-center gap-1 px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                    <AlignLeft size={12} /> Úroveň
+                  </div>
                   {[1, 2, 3].map((level) => (
                     <button
                       key={level}
                       type="button"
+                      onMouseDown={(event) => event.preventDefault()}
                       onClick={() => changeHeadingLevel(level as 1 | 2 | 3)}
                       className={`block-type-item ${block.level === level ? 'is-active' : ''}`}
                     >
-                      <MoreHorizontal size={15} />
+                      {typeIcon('heading', level as 1 | 2 | 3)}
                       <span>H{level}</span>
+                      {block.level === level && <ChevronDown size={13} className="ml-auto opacity-50" />}
                     </button>
                   ))}
                 </>
@@ -198,7 +216,7 @@ function Row({
           title="Přesunout blok"
           className="block-control cursor-grab active:cursor-grabbing"
         >
-          <GripVertical size={15} />
+          <GripVertical size={15} strokeWidth={2.3} />
         </button>
       </div>
 
@@ -206,12 +224,12 @@ function Row({
         {editor && <EditorContent editor={editor} className="tiptap" />}
       </div>
 
-      <div className="flex w-12 flex-none items-start gap-0.5 pl-1 pt-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" className="block-control">
-          <Copy size={14} />
+      <div className={`block-actions flex w-12 flex-none items-start gap-0.5 pl-1 pt-1 ${active ? 'is-visible' : ''}`}>
+        <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" title="Duplikovat" className="block-control">
+          <Copy size={14} strokeWidth={2.1} />
         </button>
-        <button type="button" onClick={onDelete} aria-label="Smazat blok" className="block-control text-red-500">
-          <Trash2 size={14} />
+        <button type="button" onClick={onDelete} aria-label="Smazat blok" title="Smazat" className="block-control text-red-500">
+          <Trash2 size={14} strokeWidth={2.1} />
         </button>
       </div>
 
@@ -222,9 +240,13 @@ function Row({
 
 export default function Editor({ page, onChange }: { page: Page; onChange: (page: Page) => void }) {
   const [blocks, setBlocks] = useState(page.blocks)
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-  useEffect(() => setBlocks(page.blocks), [page.id, page.blocks])
+  useEffect(() => {
+    setBlocks(page.blocks)
+    setActiveBlockId(null)
+  }, [page.id, page.blocks])
 
   const persist = (next: Block[]) => {
     setBlocks(next)
@@ -238,12 +260,11 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
     if (from >= 0 && to >= 0) persist(arrayMove(blocks, from, to))
   }
 
-  const addAt = (index: number) =>
-    persist([
-      ...blocks.slice(0, index + 1),
-      { id: nanoid(), type: 'paragraph', text: '' },
-      ...blocks.slice(index + 1),
-    ])
+  const addAt = (index: number) => {
+    const nextBlock = { id: nanoid(), type: 'paragraph' as const, text: '' }
+    persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)])
+    setActiveBlockId(nextBlock.id)
+  }
 
   return (
     <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16">
@@ -264,9 +285,19 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
               <Row
                 key={block.id}
                 block={block}
+                active={activeBlockId === block.id}
+                onActivate={() => setActiveBlockId(block.id)}
                 onAdd={() => addAt(index)}
-                onDelete={() => persist(blocks.filter((item) => item.id !== block.id))}
-                onDuplicate={() => persist([...blocks.slice(0, index + 1), { ...block, id: nanoid() }, ...blocks.slice(index + 1)])}
+                onDelete={() => {
+                  const next = blocks.filter((item) => item.id !== block.id)
+                  persist(next)
+                  setActiveBlockId(next[Math.min(index, next.length - 1)]?.id || null)
+                }}
+                onDuplicate={() => {
+                  const duplicate = { ...block, id: nanoid() }
+                  persist([...blocks.slice(0, index + 1), duplicate, ...blocks.slice(index + 1)])
+                  setActiveBlockId(duplicate.id)
+                }}
                 onUpdate={(update) => persist(blocks.map((item) => (item.id === block.id ? { ...item, ...update } : item)))}
               />
             ))}
@@ -277,7 +308,7 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
       <button
         type="button"
         onClick={() => addAt(Math.max(0, blocks.length - 1))}
-        className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+        className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"
       >
         <Plus size={15} /> Přidat blok
       </button>
