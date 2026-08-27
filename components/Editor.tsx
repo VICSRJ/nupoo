@@ -2,24 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { nanoid } from 'nanoid'
-import {
-  AlignLeft,
-  CheckSquare2,
-  ChevronDown,
-  Code2,
-  Copy,
-  GripVertical,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Plus,
-  Quote,
-  TextCursorInput,
-  Trash2,
-  Type,
-} from 'lucide-react'
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -28,16 +10,17 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import IconifyIcon from './IconifyIcon'
 import type { Page, Block } from '@/lib/storage'
 
-const BLOCK_TYPES: Array<{ type: Block['type']; label: string }> = [
-  { type: 'paragraph', label: 'Text' },
-  { type: 'heading', label: 'Heading' },
-  { type: 'bulletList', label: 'Bulleted list' },
-  { type: 'orderedList', label: 'Numbered list' },
-  { type: 'taskList', label: 'Task list' },
-  { type: 'blockquote', label: 'Quote' },
-  { type: 'codeBlock', label: 'Code' },
+const BLOCK_TYPES: Array<{ type: Block['type']; label: string; icon: string }> = [
+  { type: 'paragraph', label: 'Text', icon: 'solar:text-outline' },
+  { type: 'heading', label: 'Heading', icon: 'solar:text-bold-outline' },
+  { type: 'bulletList', label: 'Bulleted list', icon: 'solar:list-broken' },
+  { type: 'orderedList', label: 'Numbered list', icon: 'solar:list-number-outline' },
+  { type: 'taskList', label: 'Task list', icon: 'solar:checklist-minimalistic-outline' },
+  { type: 'blockquote', label: 'Quote', icon: 'solar:quote-up-outline' },
+  { type: 'codeBlock', label: 'Code', icon: 'solar:code-square-outline' },
 ]
 
 function escapeHtml(value: string) {
@@ -59,18 +42,13 @@ function htmlFor(block: Block) {
   return `<p>${text}</p>`
 }
 
-function typeIcon(type: Block['type'], level?: 1 | 2 | 3) {
+function iconFor(type: Block['type'], level?: 1 | 2 | 3) {
   if (type === 'heading') {
-    if (level === 2) return <Heading2 size={15} strokeWidth={2.2} />
-    if (level === 3) return <Heading3 size={15} strokeWidth={2.2} />
-    return <Heading1 size={15} strokeWidth={2.2} />
+    const icon = level === 2 ? 'solar:text-field-focus-outline' : level === 3 ? 'solar:text-field-outline' : 'solar:text-bold-outline'
+    return <IconifyIcon icon={icon} size={16} />
   }
-  if (type === 'bulletList') return <List size={15} strokeWidth={2.2} />
-  if (type === 'orderedList') return <ListOrdered size={15} strokeWidth={2.2} />
-  if (type === 'taskList') return <CheckSquare2 size={15} strokeWidth={2.2} />
-  if (type === 'blockquote') return <Quote size={15} strokeWidth={2.2} />
-  if (type === 'codeBlock') return <Code2 size={15} strokeWidth={2.2} />
-  return <Type size={15} strokeWidth={2.2} />
+  const item = BLOCK_TYPES.find((entry) => entry.type === type)
+  return <IconifyIcon icon={item?.icon || 'solar:text-outline'} size={16} />
 }
 
 function labelFor(block: Block) {
@@ -118,11 +96,7 @@ function Row({
   }, [block.text, block.type, block.level, editor])
 
   const changeType = (type: Block['type']) => {
-    const next: Block = {
-      ...block,
-      type,
-      level: type === 'heading' ? block.level || 1 : undefined,
-    }
+    const next: Block = { ...block, type, level: type === 'heading' ? block.level || 1 : undefined }
     onUpdate(next)
     if (editor) editor.commands.setContent(htmlFor(next), false)
     setMenuOpen(false)
@@ -150,7 +124,7 @@ function Row({
     >
       <div className={`block-toolbar flex w-[76px] flex-none items-start justify-end gap-0.5 pr-2 pt-1 ${active ? 'is-visible' : ''}`}>
         <button type="button" onClick={onAdd} aria-label="Přidat blok" title="Přidat blok" className="block-control">
-          <Plus size={15} strokeWidth={2.3} />
+          <IconifyIcon icon="solar:add-square-outline" size={17} />
         </button>
 
         <div className="relative">
@@ -163,7 +137,7 @@ function Row({
             aria-expanded={menuOpen}
             className={`block-control ${menuOpen ? 'is-pressed' : ''}`}
           >
-            {typeIcon(block.type, block.level)}
+            {iconFor(block.type, block.level)}
           </button>
 
           {menuOpen && (
@@ -177,9 +151,9 @@ function Row({
                   onClick={() => changeType(item.type)}
                   className={`block-type-item ${block.type === item.type ? 'is-active' : ''}`}
                 >
-                  {typeIcon(item.type)}
+                  {iconFor(item.type)}
                   <span>{item.label}</span>
-                  {block.type === item.type && <TextCursorInput size={13} className="ml-auto opacity-50" />}
+                  {block.type === item.type && <IconifyIcon icon="solar:check-circle-outline" size={14} className="ml-auto opacity-60" />}
                 </button>
               ))}
 
@@ -187,7 +161,7 @@ function Row({
                 <>
                   <div className="my-1.5 border-t border-zinc-200 dark:border-zinc-800" />
                   <div className="flex items-center gap-1 px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                    <AlignLeft size={12} /> Úroveň
+                    <IconifyIcon icon="solar:text-field-focus-outline" size={13} /> Úroveň
                   </div>
                   {[1, 2, 3].map((level) => (
                     <button
@@ -197,9 +171,9 @@ function Row({
                       onClick={() => changeHeadingLevel(level as 1 | 2 | 3)}
                       className={`block-type-item ${block.level === level ? 'is-active' : ''}`}
                     >
-                      {typeIcon('heading', level as 1 | 2 | 3)}
+                      {iconFor('heading', level as 1 | 2 | 3)}
                       <span>H{level}</span>
-                      {block.level === level && <ChevronDown size={13} className="ml-auto opacity-50" />}
+                      {block.level === level && <IconifyIcon icon="solar:check-circle-outline" size={14} className="ml-auto opacity-60" />}
                     </button>
                   ))}
                 </>
@@ -216,7 +190,7 @@ function Row({
           title="Přesunout blok"
           className="block-control cursor-grab active:cursor-grabbing"
         >
-          <GripVertical size={15} strokeWidth={2.3} />
+          <IconifyIcon icon="solar:menu-dots-square-outline" size={17} />
         </button>
       </div>
 
@@ -226,10 +200,10 @@ function Row({
 
       <div className={`block-actions flex w-12 flex-none items-start gap-0.5 pl-1 pt-1 ${active ? 'is-visible' : ''}`}>
         <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" title="Duplikovat" className="block-control">
-          <Copy size={14} strokeWidth={2.1} />
+          <IconifyIcon icon="solar:copy-outline" size={15} />
         </button>
         <button type="button" onClick={onDelete} aria-label="Smazat blok" title="Smazat" className="block-control text-red-500">
-          <Trash2 size={14} strokeWidth={2.1} />
+          <IconifyIcon icon="solar:trash-bin-minimalistic-outline" size={15} />
         </button>
       </div>
 
@@ -310,7 +284,7 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
         onClick={() => addAt(Math.max(0, blocks.length - 1))}
         className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"
       >
-        <Plus size={15} /> Přidat blok
+        <IconifyIcon icon="solar:add-square-outline" size={16} /> Přidat blok
       </button>
     </article>
   )
