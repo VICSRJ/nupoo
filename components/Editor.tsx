@@ -64,7 +64,7 @@ function TypeMenu({ block, onChange }: { block: Block; onChange: (type: Block['t
 
 function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onDuplicate, onAdd }: { block: Block; active: boolean; onActivate: () => void; onContextMenu: (event: React.MouseEvent) => void; onUpdate: (value: Partial<Block>) => void; onDelete: () => void; onDuplicate: () => void; onAdd: () => void }) {
   const [typeMenuOpen, setTypeMenuOpen] = useState(false)
-  const [toolbarTop, setToolbarTop] = useState(3)
+  const [toolbarTop, setToolbarTop] = useState(0)
   const rowRef = useRef<HTMLDivElement | null>(null)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id })
 
@@ -81,8 +81,8 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
     if (!editor || !rowRef.current) return
     const rowRect = rowRef.current.getBoundingClientRect()
     const caret = editor.view.coordsAtPos(editor.state.selection.from)
-    const next = caret.top - rowRect.top - 4
-    setToolbarTop(Math.max(3, Math.min(next, Math.max(3, rowRect.height - 29))))
+    const caretCenter = (caret.top + caret.bottom) / 2
+    setToolbarTop(caretCenter - rowRect.top)
   }
 
   useLayoutEffect(() => {
