@@ -29,19 +29,23 @@ function FA({ icon, size = 14 }: { icon: FaIconName; size?: number }) {
   return <i aria-hidden="true" className={`fa-solid ${icon}`} style={{ fontSize: size, lineHeight: 1 }} />
 }
 
-function escapeHtml(value: string) {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+function textContent(text: string) {
+  return text ? [{ type: 'text', text }] : []
+}
+
+function contentFor(block: Block) {
+  const text = textContent(block.text)
+  if (block.type === 'heading') return { type: 'doc', content: [{ type: 'heading', attrs: { level: block.level || 1 }, content: text }] }
+  if (block.type === 'bulletList') return { type: 'doc', content: [{ type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: text }] }] }] }
+  if (block.type === 'orderedList') return { type: 'doc', content: [{ type: 'orderedList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: text }] }] }] }
+  if (block.type === 'taskList') return { type: 'doc', content: [{ type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: false }, content: [{ type: 'paragraph', content: text }] }] }] }
+  if (block.type === 'blockquote') return { type: 'doc', content: [{ type: 'blockquote', content: [{ type: 'paragraph', content: text }] }] }
+  if (block.type === 'codeBlock') return { type: 'doc', content: [{ type: 'codeBlock', content: block.text ? [{ type: 'text', text: block.text }] : [] }] }
+  return { type: 'doc', content: [{ type: 'paragraph', content: text }] }
 }
 
 function htmlFor(block: Block) {
-  const text = escapeHtml(block.text)
-  if (block.type === 'heading') return `<h${block.level || 1}>${text}</h${block.level || 1}>`
-  if (block.type === 'bulletList') return `<ul><li><p>${text}</p></li></ul>`
-  if (block.type === 'orderedList') return `<ol><li><p>${text}</p></li></ol>`
-  if (block.type === 'taskList') return `<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>${text}</p></li></ul>`
-  if (block.type === 'blockquote') return `<blockquote><p>${text}</p></blockquote>`
-  if (block.type === 'codeBlock') return `<pre><code>${text}</code></pre>`
-  return `<p>${text}</p>`
+  return contentFor(block)
 }
 
 function typeLabel(block: Block) {
@@ -72,6 +76,9 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
     extensions: [StarterKit.configure({ heading: { levels: [1, 2, 3] } }), TaskList, TaskItem.configure({ nested: true }), Placeholder.configure({ placeholder: 'Napiš něco…' })],
     content: htmlFor(block),
     immediatelyRender: false,
+    editorProps: {
+      attributes: { 'aria-label': typeLabel(block) },
+    },
     onFocus: () => { onActivate(); requestAnimationFrame(updateToolbarPosition) },
     onSelectionUpdate: () => requestAnimationFrame(updateToolbarPosition),
     onUpdate: ({ editor: currentEditor }) => { onActivate(); onUpdate({ text: currentEditor.getText() }); requestAnimationFrame(updateToolbarPosition) },
@@ -92,12 +99,19 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
   }, [active, block.text, block.type, block.level])
 
   useEffect(() => {
-    if (editor && !editor.isFocused && (editor.getText() !== block.text || editor.getHTML() !== htmlFor(block))) editor.commands.setContent(htmlFor(block), false)
+    if (editor && !editor.isFocused && (editor.getText() !== block.text || JSON.stringify(editor.getJSON()) !== JSON.stringify(htmlFor(block)))) {
+      editor.commands.setContent(htmlFor(block), false)
+    }
   }, [block.text, block.type, block.level, editor])
 
   const changeType = (type: Block['type'], level?: 1 | 2 | 3) => {
     const next: Block = { ...block, type, level: type === 'heading' ? level || 1 : undefined }
-    onUpdate(next); editor?.commands.setContent(htmlFor(next), false); setTypeMenuOpen(false); onActivate(); requestAnimationFrame(updateToolbarPosition)
+    onUpdate(next)
+    editor?.commands.setContent(contentFor(next), false)
+    editor?.commands.focus('start')
+    setTypeMenuOpen(false)
+    onActivate()
+    requestAnimationFrame(updateToolbarPosition)
   }
 
   return <div ref={(node) => { rowRef.current = node; setNodeRef(node) }} onFocusCapture={onActivate} onContextMenu={onContextMenu} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 }} className={`block-row relative flex min-w-0 items-start rounded-md ${active ? 'is-active' : ''}`}>
@@ -149,7 +163,7 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
       <div className="block-menu-title">{typeLabel(contextBlock)}</div>
       <div className="block-context-grid"><button type="button" className="block-context-item" onClick={() => duplicateBlock(contextIndex)}><FA icon="fa-copy" size={12} /> Duplikovat</button><button type="button" className="block-context-item danger" onClick={() => deleteBlock(contextIndex)}><FA icon="fa-trash-can" size={12} /> Smazat</button></div>
       <div className="block-menu-separator" /><div className="block-menu-title">Změnit typ</div>
-      {BLOCK_TYPES.map((item) => <button key={item.type} type="button" className={`block-type-item ${contextBlock.type === item.type ? 'is-active' : ''}`} onClick={() => { const level = item.type === 'heading' ? contextBlock.level || 1 : undefined; persist(blocks.map((block) => block.id === contextBlock.id ? { ...block, type: item.type, level } : block)); setContext(null) }}><span className="block-menu-icon"><FA icon={item.icon} size={13} /></span><span>{item.label}</span>{contextBlock.type === item.type && <FA icon="fa-check" size={10} />}</button>)}
+      {BLOCK_TYPES.map((item) => <button key={item.type} type="button" className={`block-type-item ${contextBlock.type === item.type ? 'is-active' : ''}`} onClick={() => { const level = item.type === 'heading' ? contextBlock.level || 1 : undefined; const next = { ...contextBlock, type: item.type, level }; persist(blocks.map((block) => block.id === contextBlock.id ? next : block)); setActiveBlockId(next.id); setContext(null) }}><span className="block-menu-icon"><FA icon={item.icon} size={13} /></span><span>{item.label}</span>{contextBlock.type === item.type && <FA icon="fa-check" size={10} />}</button>)}
     </div>}
   </article>
 }
