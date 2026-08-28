@@ -12,11 +12,7 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import type { Page, Block } from '@/lib/storage'
 
-type FaIconName =
-  | 'fa-font' | 'fa-heading' | 'fa-list-ul' | 'fa-list-ol' | 'fa-list-check'
-  | 'fa-quote-left' | 'fa-code' | 'fa-plus' | 'fa-grip-vertical'
-  | 'fa-copy' | 'fa-trash-can' | 'fa-check'
-
+type FaIconName = 'fa-font' | 'fa-heading' | 'fa-list-ul' | 'fa-list-ol' | 'fa-list-check' | 'fa-quote-left' | 'fa-code' | 'fa-plus' | 'fa-grip-vertical' | 'fa-copy' | 'fa-trash-can' | 'fa-check'
 type MenuItem = { type: Block['type']; label: string; icon: FaIconName }
 
 const BLOCK_TYPES: MenuItem[] = [
@@ -53,78 +49,41 @@ function typeLabel(block: Block) {
 }
 
 function TypeMenu({ block, onChange }: { block: Block; onChange: (type: Block['type'], level?: 1 | 2 | 3) => void }) {
-  return (
-    <div className="block-type-menu" onMouseDown={(event) => event.stopPropagation()}>
-      <div className="block-menu-title">Změnit typ</div>
-      {BLOCK_TYPES.map((item) => (
-        <button key={item.type} type="button" onClick={() => onChange(item.type, item.type === 'heading' ? block.level || 1 : undefined)} className={`block-type-item ${block.type === item.type ? 'is-active' : ''}`}>
-          <span className="block-menu-icon"><FA icon={item.icon} size={13} /></span>
-          <span>{item.label}</span>
-          {block.type === item.type && <FA icon="fa-check" size={10} />}
-        </button>
-      ))}
-      {block.type === 'heading' && (
-        <>
-          <div className="block-menu-separator" />
-          <div className="block-menu-title">Úroveň</div>
-          {[1, 2, 3].map((level) => (
-            <button key={level} type="button" onClick={() => onChange('heading', level as 1 | 2 | 3)} className={`block-type-item ${block.level === level ? 'is-active' : ''}`}>
-              <span className="block-menu-icon heading-level">H{level}</span>
-              <span>Nadpis {level}</span>
-              {block.level === level && <FA icon="fa-check" size={10} />}
-            </button>
-          ))}
-        </>
-      )}
-    </div>
-  )
+  return <div className="block-type-menu" onMouseDown={(event) => event.stopPropagation()}>
+    <div className="block-menu-title">Změnit typ</div>
+    {BLOCK_TYPES.map((item) => <button key={item.type} type="button" onClick={() => onChange(item.type, item.type === 'heading' ? block.level || 1 : undefined)} className={`block-type-item ${block.type === item.type ? 'is-active' : ''}`}>
+      <span className="block-menu-icon"><FA icon={item.icon} size={13} /></span><span>{item.label}</span>{block.type === item.type && <FA icon="fa-check" size={10} />}
+    </button>)}
+    {block.type === 'heading' && <><div className="block-menu-separator" /><div className="block-menu-title">Úroveň</div>
+      {[1, 2, 3].map((level) => <button key={level} type="button" onClick={() => onChange('heading', level as 1 | 2 | 3)} className={`block-type-item ${block.level === level ? 'is-active' : ''}`}>
+        <span className="block-menu-icon heading-level">H{level}</span><span>Nadpis {level}</span>{block.level === level && <FA icon="fa-check" size={10} />}
+      </button>)}
+    </>}
+  </div>
 }
 
-function Row({
-  block, active, onActivate, onContextMenu, onUpdate, onDelete, onDuplicate, onAdd,
-}: {
-  block: Block
-  active: boolean
-  onActivate: () => void
-  onContextMenu: (event: React.MouseEvent) => void
-  onUpdate: (value: Partial<Block>) => void
-  onDelete: () => void
-  onDuplicate: () => void
-  onAdd: () => void
-}) {
+function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onDuplicate, onAdd }: { block: Block; active: boolean; onActivate: () => void; onContextMenu: (event: React.MouseEvent) => void; onUpdate: (value: Partial<Block>) => void; onDelete: () => void; onDuplicate: () => void; onAdd: () => void }) {
   const [typeMenuOpen, setTypeMenuOpen] = useState(false)
-  const [toolbarTop, setToolbarTop] = useState(4)
+  const [toolbarTop, setToolbarTop] = useState(3)
   const rowRef = useRef<HTMLDivElement | null>(null)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id })
 
-  const updateToolbarPosition = () => {
-    if (!editor || !rowRef.current) return
-    const rowRect = rowRef.current.getBoundingClientRect()
-    const coords = editor.view.coordsAtPos(editor.state.selection.from)
-    const next = coords.top - rowRect.top - 4
-    setToolbarTop(Math.max(3, Math.min(next, Math.max(3, rowRect.height - 30))))
-  }
-
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Placeholder.configure({ placeholder: 'Napiš něco…' }),
-    ],
+    extensions: [StarterKit.configure({ heading: { levels: [1, 2, 3] } }), TaskList, TaskItem.configure({ nested: true }), Placeholder.configure({ placeholder: 'Napiš něco…' })],
     content: htmlFor(block),
     immediatelyRender: false,
-    onFocus: () => {
-      onActivate()
-      requestAnimationFrame(updateToolbarPosition)
-    },
+    onFocus: () => { onActivate(); requestAnimationFrame(updateToolbarPosition) },
     onSelectionUpdate: () => requestAnimationFrame(updateToolbarPosition),
-    onUpdate: ({ editor: currentEditor }) => {
-      onActivate()
-      onUpdate({ text: currentEditor.getText() })
-      requestAnimationFrame(updateToolbarPosition)
-    },
+    onUpdate: ({ editor: currentEditor }) => { onActivate(); onUpdate({ text: currentEditor.getText() }); requestAnimationFrame(updateToolbarPosition) },
   })
+
+  function updateToolbarPosition() {
+    if (!editor || !rowRef.current) return
+    const rowRect = rowRef.current.getBoundingClientRect()
+    const caret = editor.view.coordsAtPos(editor.state.selection.from)
+    const next = caret.top - rowRect.top - 4
+    setToolbarTop(Math.max(3, Math.min(next, Math.max(3, rowRect.height - 29))))
+  }
 
   useLayoutEffect(() => {
     if (!active) return
@@ -133,52 +92,30 @@ function Row({
   }, [active, block.text, block.type, block.level])
 
   useEffect(() => {
-    if (editor && !editor.isFocused && (editor.getText() !== block.text || editor.getHTML() !== htmlFor(block))) {
-      editor.commands.setContent(htmlFor(block), false)
-      requestAnimationFrame(updateToolbarPosition)
-    }
+    if (editor && !editor.isFocused && (editor.getText() !== block.text || editor.getHTML() !== htmlFor(block))) editor.commands.setContent(htmlFor(block), false)
   }, [block.text, block.type, block.level, editor])
 
   const changeType = (type: Block['type'], level?: 1 | 2 | 3) => {
     const next: Block = { ...block, type, level: type === 'heading' ? level || 1 : undefined }
-    onUpdate(next)
-    editor?.commands.setContent(htmlFor(next), false)
-    setTypeMenuOpen(false)
-    onActivate()
-    requestAnimationFrame(updateToolbarPosition)
+    onUpdate(next); editor?.commands.setContent(htmlFor(next), false); setTypeMenuOpen(false); onActivate(); requestAnimationFrame(updateToolbarPosition)
   }
 
-  return (
-    <div
-      ref={(node) => { rowRef.current = node; setNodeRef(node) }}
-      onFocusCapture={onActivate}
-      onContextMenu={onContextMenu}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 }}
-      className={`block-row relative flex min-w-0 items-start rounded-md ${active ? 'is-active' : ''}`}
-    >
-      <div className={`block-toolbar ${active ? 'is-visible' : ''}`} style={{ top: toolbarTop }} onMouseDown={(event) => event.preventDefault()}>
-        <button type="button" onClick={onAdd} aria-label="Přidat blok" title="Přidat blok" className="block-control"><FA icon="fa-plus" size={12} /></button>
-        <div className="relative">
-          <button type="button" onClick={() => setTypeMenuOpen((value) => !value)} aria-label={`Změnit typ: ${typeLabel(block)}`} title={`Změnit typ: ${typeLabel(block)}`} className={`block-control ${typeMenuOpen ? 'is-pressed' : ''}`}>
-            <FA icon={block.type === 'heading' ? 'fa-heading' : (BLOCK_TYPES.find((item) => item.type === block.type)?.icon || 'fa-font')} size={13} />
-          </button>
-          {typeMenuOpen && <TypeMenu block={block} onChange={changeType} />}
-        </div>
-        <button type="button" {...listeners} {...attributes} aria-label="Přesunout blok" title="Přesunout blok" className="block-control cursor-grab active:cursor-grabbing"><FA icon="fa-grip-vertical" size={12} /></button>
+  return <div ref={(node) => { rowRef.current = node; setNodeRef(node) }} onFocusCapture={onActivate} onContextMenu={onContextMenu} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 }} className={`block-row relative flex min-w-0 items-start rounded-md ${active ? 'is-active' : ''}`}>
+    <div className={`block-toolbar ${active ? 'is-visible' : ''}`} style={{ top: toolbarTop }} onMouseDown={(event) => event.preventDefault()}>
+      <button type="button" onClick={onAdd} aria-label="Přidat blok" title="Přidat blok" className="block-control"><FA icon="fa-plus" size={12} /></button>
+      <div className="relative">
+        <button type="button" onClick={() => setTypeMenuOpen((value) => !value)} aria-label={`Změnit typ: ${typeLabel(block)}`} title={`Změnit typ: ${typeLabel(block)}`} className={`block-control ${typeMenuOpen ? 'is-pressed' : ''}`}><FA icon={block.type === 'heading' ? 'fa-heading' : (BLOCK_TYPES.find((item) => item.type === block.type)?.icon || 'fa-font')} size={13} /></button>
+        {typeMenuOpen && <TypeMenu block={block} onChange={changeType} />}
       </div>
-
-      <div className="min-w-0 flex-1 py-0.5">
-        {editor && <EditorContent editor={editor} className="tiptap" />}
-      </div>
-
-      <div className={`block-actions ${active ? 'is-visible' : ''}`}>
-        <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" title="Duplikovat" className="block-control"><FA icon="fa-copy" size={12} /></button>
-        <button type="button" onClick={onDelete} aria-label="Smazat blok" title="Smazat" className="block-control text-red-500"><FA icon="fa-trash-can" size={12} /></button>
-      </div>
-
-      {typeMenuOpen && <button type="button" aria-label="Zavřít nabídku" className="fixed inset-0 z-20 cursor-default bg-transparent" onMouseDown={() => setTypeMenuOpen(false)} />}
+      <button type="button" {...listeners} {...attributes} aria-label="Přesunout blok" title="Přesunout blok" className="block-control cursor-grab active:cursor-grabbing"><FA icon="fa-grip-vertical" size={12} /></button>
     </div>
-  )
+    <div className="min-w-0 flex-1 py-0.5">{editor && <EditorContent editor={editor} className="tiptap" />}</div>
+    <div className={`block-actions ${active ? 'is-visible' : ''}`}>
+      <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" title="Duplikovat" className="block-control"><FA icon="fa-copy" size={12} /></button>
+      <button type="button" onClick={onDelete} aria-label="Smazat blok" title="Smazat" className="block-control text-red-500"><FA icon="fa-trash-can" size={12} /></button>
+    </div>
+    {typeMenuOpen && <button type="button" aria-label="Zavřít nabídku" className="fixed inset-0 z-20 cursor-default bg-transparent" onMouseDown={() => setTypeMenuOpen(false)} />}
+  </div>
 }
 
 export default function Editor({ page, onChange }: { page: Page; onChange: (page: Page) => void }) {
@@ -187,119 +124,33 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
   const [context, setContext] = useState<{ blockId: string; x: number; y: number } | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-  useEffect(() => {
-    setBlocks(page.blocks)
-    setActiveBlockId(null)
-    setContext(null)
-  }, [page.id, page.blocks])
+  useEffect(() => { setBlocks(page.blocks); setActiveBlockId(null); setContext(null) }, [page.id, page.blocks])
 
-  const persist = (next: Block[]) => {
-    setBlocks(next)
-    onChange({ ...page, blocks: next, updatedAt: new Date().toISOString() })
-  }
-
-  const addAt = (index: number) => {
-    const nextBlock: Block = { id: nanoid(), type: 'paragraph', text: '' }
-    persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)])
-    setActiveBlockId(nextBlock.id)
-  }
-
-  const duplicateBlock = (index: number) => {
-    const duplicate = { ...blocks[index], id: nanoid() }
-    persist([...blocks.slice(0, index + 1), duplicate, ...blocks.slice(index + 1)])
-    setActiveBlockId(duplicate.id)
-    setContext(null)
-  }
-
-  const deleteBlock = (index: number) => {
-    const next = blocks.filter((_, itemIndex) => itemIndex !== index)
-    persist(next)
-    setActiveBlockId(next[Math.min(index, next.length - 1)]?.id || null)
-    setContext(null)
-  }
-
-  const drag = (event: DragEndEvent) => {
-    if (!event.over || event.active.id === event.over.id) return
-    const from = blocks.findIndex((block) => block.id === event.active.id)
-    const to = blocks.findIndex((block) => block.id === event.over?.id)
-    if (from >= 0 && to >= 0) persist(arrayMove(blocks, from, to))
-  }
+  const persist = (next: Block[]) => { setBlocks(next); onChange({ ...page, blocks: next, updatedAt: new Date().toISOString() }) }
+  const addAt = (index: number) => { const nextBlock: Block = { id: nanoid(), type: 'paragraph', text: '' }; persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)]); setActiveBlockId(nextBlock.id) }
+  const duplicateBlock = (index: number) => { const duplicate = { ...blocks[index], id: nanoid() }; persist([...blocks.slice(0, index + 1), duplicate, ...blocks.slice(index + 1)]); setActiveBlockId(duplicate.id); setContext(null) }
+  const deleteBlock = (index: number) => { const next = blocks.filter((_, i) => i !== index); persist(next); setActiveBlockId(next[Math.min(index, next.length - 1)]?.id || null); setContext(null) }
+  const drag = (event: DragEndEvent) => { if (!event.over || event.active.id === event.over.id) return; const from = blocks.findIndex((block) => block.id === event.active.id); const to = blocks.findIndex((block) => block.id === event.over?.id); if (from >= 0 && to >= 0) persist(arrayMove(blocks, from, to)) }
 
   useEffect(() => {
     const close = () => setContext(null)
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setContext(null) }
-    window.addEventListener('mousedown', close)
-    window.addEventListener('keydown', escape)
-    return () => {
-      window.removeEventListener('mousedown', close)
-      window.removeEventListener('keydown', escape)
-    }
+    window.addEventListener('mousedown', close); window.addEventListener('keydown', escape)
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', escape) }
   }, [])
 
   const contextIndex = context ? blocks.findIndex((block) => block.id === context.blockId) : -1
   const contextBlock = contextIndex >= 0 ? blocks[contextIndex] : null
 
-  return (
-    <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16">
-      <div className="mb-8 pl-[76px] md:pl-[84px]">
-        <div className="mb-3 text-5xl">{page.icon || '📄'}</div>
-        <input value={page.title} onChange={(event) => onChange({ ...page, title: event.target.value, updatedAt: new Date().toISOString() })} className="w-full bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-zinc-300 sm:text-5xl" placeholder="Bez názvu" />
-      </div>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drag}>
-        <SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-0.5">
-            {blocks.map((block, index) => (
-              <Row
-                key={block.id}
-                block={block}
-                active={activeBlockId === block.id}
-                onActivate={() => { setActiveBlockId(block.id); setContext(null) }}
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  setActiveBlockId(block.id)
-                  setContext({ blockId: block.id, x: event.clientX, y: event.clientY })
-                }}
-                onAdd={() => addAt(index)}
-                onDelete={() => deleteBlock(index)}
-                onDuplicate={() => duplicateBlock(index)}
-                onUpdate={(update) => persist(blocks.map((item) => item.id === block.id ? { ...item, ...update } : item))}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <button type="button" onClick={() => addAt(Math.max(0, blocks.length - 1))} className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200">
-        <FA icon="fa-plus" size={12} /> Přidat blok
-      </button>
-
-      {context && contextBlock && (
-        <div
-          className="block-context-menu fixed z-50"
-          style={{ left: Math.min(context.x, Math.max(8, window.innerWidth - 238)), top: Math.min(context.y, Math.max(8, window.innerHeight - 370)) }}
-          onMouseDown={(event) => event.stopPropagation()}
-        >
-          <div className="block-menu-title">{typeLabel(contextBlock)}</div>
-          <div className="block-context-grid">
-            <button type="button" className="block-context-item" onClick={() => duplicateBlock(contextIndex)}><FA icon="fa-copy" size={12} /> Duplikovat</button>
-            <button type="button" className="block-context-item danger" onClick={() => deleteBlock(contextIndex)}><FA icon="fa-trash-can" size={12} /> Smazat</button>
-          </div>
-          <div className="block-menu-separator" />
-          <div className="block-menu-title">Změnit typ</div>
-          {BLOCK_TYPES.map((item) => (
-            <button key={item.type} type="button" className={`block-type-item ${contextBlock.type === item.type ? 'is-active' : ''}`} onClick={() => {
-              const level = item.type === 'heading' ? contextBlock.level || 1 : undefined
-              persist(blocks.map((block) => block.id === contextBlock.id ? { ...block, type: item.type, level } : block))
-              setContext(null)
-            }}>
-              <span className="block-menu-icon"><FA icon={item.icon} size={13} /></span>
-              <span>{item.label}</span>
-              {contextBlock.type === item.type && <FA icon="fa-check" size={10} />}
-            </button>
-          ))}
-        </div>
-      )}
-    </article>
-  )
+  return <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16">
+    <div className="mb-8 pl-[76px] md:pl-[84px]"><div className="mb-3 text-5xl">{page.icon || '📄'}</div><input value={page.title} onChange={(event) => onChange({ ...page, title: event.target.value, updatedAt: new Date().toISOString() })} className="w-full bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-zinc-300 sm:text-5xl" placeholder="Bez názvu" /></div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drag}><SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}><div className="space-y-0.5">{blocks.map((block, index) => <Row key={block.id} block={block} active={activeBlockId === block.id} onActivate={() => { setActiveBlockId(block.id); setContext(null) }} onContextMenu={(event) => { event.preventDefault(); setActiveBlockId(block.id); const width = document.documentElement.clientWidth; const height = document.documentElement.clientHeight; setContext({ blockId: block.id, x: Math.min(event.clientX, Math.max(8, width - 238)), y: Math.min(event.clientY, Math.max(8, height - 370)) }) }} onAdd={() => addAt(index)} onDelete={() => deleteBlock(index)} onDuplicate={() => duplicateBlock(index)} onUpdate={(update) => persist(blocks.map((item) => item.id === block.id ? { ...item, ...update } : item))} />)}</div></SortableContext></DndContext>
+    <button type="button" onClick={() => addAt(Math.max(0, blocks.length - 1))} className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"><FA icon="fa-plus" size={12} /> Přidat blok</button>
+    {context && contextBlock && <div className="block-context-menu fixed z-50" style={{ left: context.x, top: context.y }} onMouseDown={(event) => event.stopPropagation()}>
+      <div className="block-menu-title">{typeLabel(contextBlock)}</div>
+      <div className="block-context-grid"><button type="button" className="block-context-item" onClick={() => duplicateBlock(contextIndex)}><FA icon="fa-copy" size={12} /> Duplikovat</button><button type="button" className="block-context-item danger" onClick={() => deleteBlock(contextIndex)}><FA icon="fa-trash-can" size={12} /> Smazat</button></div>
+      <div className="block-menu-separator" /><div className="block-menu-title">Změnit typ</div>
+      {BLOCK_TYPES.map((item) => <button key={item.type} type="button" className={`block-type-item ${contextBlock.type === item.type ? 'is-active' : ''}`} onClick={() => { const level = item.type === 'heading' ? contextBlock.level || 1 : undefined; persist(blocks.map((block) => block.id === contextBlock.id ? { ...block, type: item.type, level } : block)); setContext(null) }}><span className="block-menu-icon"><FA icon={item.icon} size={13} /></span><span>{item.label}</span>{contextBlock.type === item.type && <FA icon="fa-check" size={10} />}</button>)}
+    </div>}
+  </article>
 }
