@@ -110,10 +110,6 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
       <button type="button" {...listeners} {...attributes} aria-label="Přesunout blok" title="Přesunout blok" className="block-control cursor-grab active:cursor-grabbing"><FA icon="fa-grip-vertical" size={12} /></button>
     </div>
     <div className="min-w-0 flex-1 py-0.5">{editor && <EditorContent editor={editor} className="tiptap" />}</div>
-    <div className={`block-actions ${active ? 'is-visible' : ''}`}>
-      <button type="button" onClick={onDuplicate} aria-label="Duplikovat blok" title="Duplikovat" className="block-control"><FA icon="fa-copy" size={12} /></button>
-      <button type="button" onClick={onDelete} aria-label="Smazat blok" title="Smazat" className="block-control text-red-500"><FA icon="fa-trash-can" size={12} /></button>
-    </div>
     {typeMenuOpen && <button type="button" aria-label="Zavřít nabídku" className="fixed inset-0 z-20 cursor-default bg-transparent" onMouseDown={() => setTypeMenuOpen(false)} />}
   </div>
 }
@@ -142,7 +138,10 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
   const contextIndex = context ? blocks.findIndex((block) => block.id === context.blockId) : -1
   const contextBlock = contextIndex >= 0 ? blocks[contextIndex] : null
 
-  return <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16">
+  return <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16" onMouseDown={(event) => {
+    const target = event.target as HTMLElement
+    if (!target.closest('.block-row') && !target.closest('.block-context-menu')) setActiveBlockId(null)
+  }}>
     <div className="mb-8 pl-[76px] md:pl-[84px]"><div className="mb-3 text-5xl">{page.icon || '📄'}</div><input value={page.title} onChange={(event) => onChange({ ...page, title: event.target.value, updatedAt: new Date().toISOString() })} className="w-full bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-zinc-300 sm:text-5xl" placeholder="Bez názvu" /></div>
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drag}><SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}><div className="space-y-0.5">{blocks.map((block, index) => <Row key={block.id} block={block} active={activeBlockId === block.id} onActivate={() => { setActiveBlockId(block.id); setContext(null) }} onContextMenu={(event) => { event.preventDefault(); setActiveBlockId(block.id); const width = document.documentElement.clientWidth; const height = document.documentElement.clientHeight; setContext({ blockId: block.id, x: Math.min(event.clientX, Math.max(8, width - 238)), y: Math.min(event.clientY, Math.max(8, height - 370)) }) }} onAdd={() => addAt(index)} onDelete={() => deleteBlock(index)} onDuplicate={() => duplicateBlock(index)} onUpdate={(update) => persist(blocks.map((item) => item.id === block.id ? { ...item, ...update } : item))} />)}</div></SortableContext></DndContext>
     <button type="button" onClick={() => addAt(Math.max(0, blocks.length - 1))} className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"><FA icon="fa-plus" size={12} /> Přidat blok</button>
