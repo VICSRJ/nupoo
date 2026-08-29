@@ -1,17 +1,22 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 
-export const metadata: Metadata = { title: 'Nupoo', description: 'Notion-like block editor' }
+export const metadata: Metadata = {
+  title: 'Nupoo — blokový editor',
+  description: 'Rychlý lokální Notion-like blokový editor.',
+  applicationName: 'Nupoo',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#ffffff',
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="cs">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-        />
-      </head>
       <body>{children}</body>
     </html>
   )
