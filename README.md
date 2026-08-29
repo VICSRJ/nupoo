@@ -1,47 +1,104 @@
 # Nupoo
 
-A lightweight Notion-like block editor designed to run directly on GitHub Pages.
+Nupoo je lehký **Notion-like blokový editor** postavený na Next.js, Reactu, TypeScriptu, Tailwind CSS, Tiptapu, dnd-kit a Zustandu.
 
-## Features
+## Co umí
 
-- Tiptap block editor
-- Stable block IDs
-- Drag-and-drop block reordering
-- Add, duplicate and delete blocks
-- Heading, paragraph, list, quote and code blocks
-- Page sidebar
-- Nested page creation
-- Autosave to browser localStorage
-- Dark mode
-- Responsive desktop/mobile UI
-- Hash-based navigation so GitHub Pages does not need server routes
+- blokový editor s podporou textu, nadpisů, seznamů, úkolů, citací a kódu
+- drag & drop řazení bloků
+- vlastní kontextové menu bloku
+- stránky a vnořené podstránky ve stromu
+- oblíbené stránky
+- rychlé fulltextové hledání názvů i obsahu
+- automatické ukládání do `localStorage` s indikací „Ukládám / Uloženo“
+- světlý / tmavý režim
+- klávesové zkratky `Ctrl/Cmd + K` a `Ctrl/Cmd + N`
+- responzivní ovládání pro desktop i mobil
+- statický export kompatibilní s GitHub Pages
 
-## Stack
+## Architektura
 
-Next.js 15 · React 19 · TypeScript · Tailwind CSS · Tiptap · dnd-kit · Lucide
+```text
+app/
+  layout.tsx          # metadata + shell
+  page.tsx            # vstup do Workspace
+  globals.css         # globální a editorové styly
+components/
+  Workspace.tsx       # UI workspace, strom, hledání, navigace
+  Editor.tsx          # Tiptap + dnd-kit editor
+lib/
+  storage.ts          # typy a bezpečná localStorage persistence
+  data-service.ts     # datová abstrakce nad storage/API
+  store.ts            # Zustand store
+```
 
-## Local
+### Datový model
+
+`Page` obsahuje identitu stránky, její rodičovskou stránku, metadata a pole bloků. `parentId` vytváří stromovou strukturu. `Block` je atomický obsahový prvek editoru.
+
+```ts
+type Page = {
+  id: string
+  title: string
+  icon?: string
+  favorite?: boolean
+  parentId?: string | null
+  blocks: Block[]
+  updatedAt: string
+}
+
+type Block = {
+  id: string
+  type: 'paragraph' | 'heading' | 'bulletList' | 'orderedList' | 'taskList' | 'blockquote' | 'codeBlock'
+  level?: 1 | 2 | 3
+  text: string
+}
+```
+
+## Lokální vývoj
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Production / GitHub Pages
+Aplikace poběží na `http://localhost:3000`.
+
+### Kontrola před commitem
 
 ```bash
-npm install
+npm run type-check
+npm run lint
+npm run format:check
 npm run build
 ```
 
-The repository includes `.github/workflows/pages.yml`. On a push to `main`, GitHub Actions builds the static `out/` directory and deploys it to GitHub Pages.
+## Deployment
 
-Expected site URL:
+GitHub Pages používá workflow `.github/workflows/pages.yml` a Next.js static export.
 
-`https://vicsrj.github.io/nupoo/`
+Pro lokální produkční kontrolu:
 
-In GitHub repository settings, set **Pages → Source** to **GitHub Actions**.
+```bash
+npm run preview
+```
 
-## Data model
+Projekt používá `basePath=/nupoo` pouze v GitHub Actions prostředí. Mimo CI zůstává základní cesta prázdná.
 
-This GitHub Pages edition intentionally uses browser localStorage instead of Prisma/PostgreSQL. That keeps the application fully static and deployable on GitHub Pages. A server-backed edition can be added later without changing the editor UI architecture.
+## Persistence a budoucí backend
+
+UI není přímo navázané na `localStorage`. Workspace používá Zustand a datové operace jsou směrovány přes `lib/data-service.ts`. Díky tomu lze později nahradit local-first persistence REST/API implementací bez zásadního refaktoru UI.
+
+## Roadmap
+
+- undo / redo historie změn
+- koš a obnova stránek
+- přesouvání stránek ve stromu
+- sofistikovanější editor bloků a markdown shortcuts
+- import / export JSON a Markdown
+- synchronizace přes backend
+- multi-user workspace
+
+## Licence
+
+Projekt je aktuálně bez explicitně deklarované open-source licence. Použití a další distribuce by měly vycházet z rozhodnutí vlastníka repozitáře, dokud nebude licence doplněna.
