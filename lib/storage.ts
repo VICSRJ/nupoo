@@ -16,6 +16,7 @@ export type Page = {
 }
 
 const KEY = 'nupoo.pages.v2'
+const LEGACY_KEY = 'nupoo.pages.v1'
 
 const seed: Page = {
   id: 'welcome',
@@ -36,17 +37,30 @@ function isPage(value: unknown): value is Page {
   return typeof page.id === 'string' && typeof page.title === 'string' && Array.isArray(page.blocks) && typeof page.updatedAt === 'string'
 }
 
+function parse(raw: string | null): Page[] {
+  if (!raw) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter(isPage) : []
+  } catch {
+    return []
+  }
+}
+
 export function loadPages(): Page[] {
   if (typeof window === 'undefined') return [seed]
   try {
-    const raw = window.localStorage.getItem(KEY)
-    if (!raw) {
-      window.localStorage.setItem(KEY, JSON.stringify([seed]))
-      return [seed]
+    const current = parse(window.localStorage.getItem(KEY))
+    if (current.length > 0) return current
+
+    const legacy = parse(window.localStorage.getItem(LEGACY_KEY))
+    if (legacy.length > 0) {
+      window.localStorage.setItem(KEY, JSON.stringify(legacy))
+      return legacy
     }
-    const parsed: unknown = JSON.parse(raw)
-    const pages = Array.isArray(parsed) ? parsed.filter(isPage) : []
-    return pages.length > 0 ? pages : [seed]
+
+    window.localStorage.setItem(KEY, JSON.stringify([seed]))
+    return [seed]
   } catch {
     return [seed]
   }
