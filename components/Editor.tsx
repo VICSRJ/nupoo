@@ -10,6 +10,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import { Check, Code2, Copy, GripVertical, Heading, List, ListCheck, ListOrdered, Plus, Quote, Trash2 } from 'lucide-react'
 import type { Page, Block } from '@/lib/storage'
 
 type FaIconName = 'fa-font' | 'fa-heading' | 'fa-list-ul' | 'fa-list-ol' | 'fa-list-check' | 'fa-quote-left' | 'fa-code' | 'fa-plus' | 'fa-grip-vertical' | 'fa-copy' | 'fa-trash-can' | 'fa-check'
@@ -26,7 +27,22 @@ const BLOCK_TYPES: MenuItem[] = [
 ]
 
 function FA({ icon, size = 14 }: { icon: FaIconName; size?: number }) {
-  return <i aria-hidden="true" className={`fa-solid ${icon}`} style={{ fontSize: size, lineHeight: 1 }} />
+  const props = { size, strokeWidth: 1.8, 'aria-hidden': true } as const
+  const icons: Record<FaIconName, React.ReactNode> = {
+    'fa-font': <span style={{ fontSize: size, lineHeight: 1 }}>T</span>,
+    'fa-heading': <Heading {...props} />,
+    'fa-list-ul': <List {...props} />,
+    'fa-list-ol': <ListOrdered {...props} />,
+    'fa-list-check': <ListCheck {...props} />,
+    'fa-quote-left': <Quote {...props} />,
+    'fa-code': <Code2 {...props} />,
+    'fa-plus': <Plus {...props} />,
+    'fa-grip-vertical': <GripVertical {...props} />,
+    'fa-copy': <Copy {...props} />,
+    'fa-trash-can': <Trash2 {...props} />,
+    'fa-check': <Check {...props} />,
+  }
+  return icons[icon]
 }
 
 function textContent(text: string) {
@@ -134,7 +150,7 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
   const [context, setContext] = useState<{ blockId: string; x: number; y: number } | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-  useEffect(() => { setBlocks(page.blocks); setActiveBlockId(null); setContext(null) }, [page.id, page.blocks])
+  useEffect(() => { setBlocks(page.blocks); setActiveBlockId(null); setContext(null) }, [page.id])
 
   const persist = (next: Block[]) => { setBlocks(next); onChange({ ...page, blocks: next, updatedAt: new Date().toISOString() }) }
   const addAt = (index: number) => { const nextBlock: Block = { id: nanoid(), type: 'paragraph', text: '' }; persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)]); setActiveBlockId(nextBlock.id) }
