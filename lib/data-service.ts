@@ -1,24 +1,16 @@
-import { loadPages, savePages, createPage, type Page } from './storage'
+import { loadPages, savePages, loadTrash, saveTrash, createPage, type Page } from './storage'
 
 export type PageSearchResult = Page & { score: number }
 
 export const dataService = {
-  load(): Page[] {
-    return loadPages()
-  },
-
-  save(pages: Page[]) {
-    savePages(pages)
-  },
-
-  create(parentId: string | null = null): Page {
-    return createPage(parentId)
-  },
-
+  load(): Page[] { return loadPages() },
+  save(pages: Page[]) { savePages(pages) },
+  loadTrash(): Page[] { return loadTrash() },
+  saveTrash(pages: Page[]) { saveTrash(pages) },
+  create(parentId: string | null = null): Page { return createPage(parentId) },
   search(pages: Page[], query: string): PageSearchResult[] {
     const q = query.trim().toLocaleLowerCase('cs-CZ')
     if (!q) return []
-
     return pages
       .map((page) => {
         const title = page.title.toLocaleLowerCase('cs-CZ')
