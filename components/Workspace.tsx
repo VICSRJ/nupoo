@@ -1,27 +1,170 @@
 'use client'
-import {useEffect,useMemo,useState} from 'react'
-import {Plus,Search,PanelLeft,Sun,Moon,Trash2} from 'lucide-react'
-import {loadPages,savePages,createPage,type Page} from '@/lib/storage'
+
+import { useEffect, useMemo, useState } from 'react'
+import { FilePlus2, FolderPlus, Moon, PanelLeft, Plus, Search, Star, Sun, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { dataService } from '@/lib/data-service'
+import { useNupooStore } from '@/lib/store'
+import type { Page } from '@/lib/storage'
 import Editor from './Editor'
 
-export default function Workspace({initialPageId}:{initialPageId?:string}={}){
- const [pages,setPages]=useState<Page[]>([]); const [active,setActive]=useState(''); const [sidebar,setSidebar]=useState(true); const [dark,setDark]=useState(false)
- useEffect(()=>{const p=loadPages();setPages(p);const hash=location.hash.slice(1);const requested=initialPageId||hash;setActive(requested&&p.some(x=>x.id===requested)?requested:(p[0]?.id||''))},[initialPageId])
- useEffect(()=>{if(pages.length)savePages(pages);document.documentElement.classList.toggle('dark',dark)},[pages,dark])
- const current=pages.find(p=>p.id===active); const top=useMemo(()=>pages.filter(p=>!p.parentId),[pages])
- const go=(id:string)=>{setActive(id);history.replaceState(null,'',id==='welcome'?'./':'./#'+id)}
- const add=(parentId:string|null=null)=>{const p=createPage(parentId);setPages(x=>[...x,p]);go(p.id)}
- const remove=()=>{if(!current||current.id==='welcome')return;setPages(x=>x.filter(p=>p.id!==current.id));go('welcome')}
- return <div className="flex min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-  {sidebar&&<aside className="hidden w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50 md:flex dark:border-zinc-800 dark:bg-zinc-900/50">
-   <div className="flex items-center gap-2 p-3 text-sm font-semibold"><div className="grid size-7 place-items-center rounded-md bg-zinc-900 text-white dark:bg-white dark:text-black">N</div>Nupoo</div>
-   <div className="px-2"><button className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800" onClick={()=>add()}><Plus size={16}/> Nová stránka</button></div>
-   <div className="flex-1 overflow-auto p-2">{top.map(p=><button key={p.id} onClick={()=>go(p.id)} className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${active===p.id?'bg-zinc-200 dark:bg-zinc-800':'hover:bg-zinc-100 dark:hover:bg-zinc-900'}`}><span>{p.icon||'📄'}</span><span className="min-w-0 flex-1 truncate">{p.title||'Bez názvu'}</span></button>)}</div>
-   <div className="border-t border-zinc-200 p-2 dark:border-zinc-800"><button className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"><Search size={16}/> Hledat</button></div>
-  </aside>}
-  <main className="min-w-0 flex-1">
-   <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-zinc-200 bg-white/90 px-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90"><button className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" onClick={()=>setSidebar(x=>!x)}><PanelLeft size={17}/></button><div className="text-sm text-zinc-500">Nupoo</div><div className="flex-1"/><button onClick={()=>setDark(x=>!x)} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900">{dark?<Sun size={17}/>:<Moon size={17}/>}</button>{current?.id!=='welcome'&&<button onClick={remove} className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"><Trash2 size={17}/></button>}</header>
-   {current?<Editor page={current} onChange={p=>setPages(x=>x.map(v=>v.id===p.id?p:v))}/>:<div className="p-12">Načítání…</div>}
-  </main>
- </div>
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'short' }).format(new Date(value))
+}
+
+function childrenOf(pages: Page[], parentId: string | null) {
+  return pages.filter((page) => (page.parentId ?? null) === parentId).sort((a, b) => a.title.localeCompare(b.title, 'cs-CZ'))
+}
+
+function PageTree({ pages, activeId, onSelect, onFavorite, onAddChild }: { pages: Page[]; activeId: string; onSelect: (id: string) => void; onFavorite: (id: string) => void; onAddChild: (id: string) => void }) {
+  const render = (parentId: string | null, depth = 0): React.ReactNode => childrenOf(pages, parentId).map((page) => {
+    const children = childrenOf(pages, page.id)
+    return <div key={page.id}>
+      <div className={`group flex items-center gap-1 rounded-lg pr-1 ${activeId === page.id ? 'bg-zinc-200 dark:bg-zinc-800' : 'hover:bg-zinc-100 dark:hover:bg-zinc-900'}`} style={{ marginLeft: depth * 10 }}>
+        <button onClick={() => onSelect(page.id)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm">
+          <span className="shrink-0 text-sm">{page.icon || '📄'}</span>
+          <span className="min-w-0 flex-1 truncate">{page.title || 'Bez názvu'}</span>
+          {page.favorite && <Star size={12} className="shrink-0 fill-current" />}
+        </button>
+        <button onClick={() => onAddChild(page.id)} className="hidden rounded p-1 text-zinc-400 hover:text-zinc-900 group-hover:block dark:hover:text-white" title="Nová podstránka" aria-label="Nová podstránka"><Plus size={13} /></button>
+        <button onClick={() => onFavorite(page.id)} className={`rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white ${page.favorite ? '' : 'opacity-0 group-hover:opacity-100'}`} title={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'} aria-label={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}><Star size={12} className={page.favorite ? 'fill-current' : ''} /></button>
+      </div>
+      {children.length > 0 && <div>{render(page.id, depth + 1)}</div>}
+    </div>
+  })
+
+  return <div>{render(null)}</div>
+}
+
+function SearchDialog({ pages, query, onQuery, onClose, onSelect }: { pages: Page[]; query: string; onQuery: (value: string) => void; onClose: () => void; onSelect: (id: string) => void }) {
+  const results = useMemo(() => dataService.search(pages, query), [pages, query])
+  return <div className="fixed inset-0 z-[100] bg-black/25 p-3 backdrop-blur-sm md:p-8" onMouseDown={onClose}>
+    <div className="mx-auto mt-[8vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950/95" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="flex items-center gap-3 border-b border-zinc-200 px-4 dark:border-zinc-800">
+        <Search size={17} className="text-zinc-400" />
+        <input autoFocus value={query} onChange={(event) => onQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') onClose() }} placeholder="Hledat stránky a obsah…" className="h-14 flex-1 bg-transparent text-base outline-none" />
+        <button onClick={onClose} className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-white" aria-label="Zavřít"><X size={17} /></button>
+      </div>
+      <div className="max-h-[55vh] overflow-auto p-2">
+        {query.trim() && results.length === 0 && <div className="px-3 py-10 text-center text-sm text-zinc-500">Nic nenalezeno.</div>}
+        {!query.trim() && <div className="px-3 py-8 text-center text-sm text-zinc-500">Začni psát název stránky nebo text obsahu.</div>}
+        {results.map((page) => <button key={page.id} onClick={() => onSelect(page.id)} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900">
+          <span className="text-lg">{page.icon || '📄'}</span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{page.title || 'Bez názvu'}</span><span className="block truncate text-xs text-zinc-500">{page.blocks.length} bloků · {formatDate(page.updatedAt)}</span></span>
+        </button>)}
+      </div>
+      <div className="border-t border-zinc-200 px-4 py-2 text-[11px] text-zinc-400 dark:border-zinc-800">Esc zavřít · vyhledává název i obsah</div>
+    </div>
+  </div>
+}
+
+export default function Workspace({ initialPageId }: { initialPageId?: string } = {}) {
+  const pages = useNupooStore((state) => state.pages)
+  const activePageId = useNupooStore((state) => state.activePageId)
+  const sidebarOpen = useNupooStore((state) => state.sidebarOpen)
+  const dark = useNupooStore((state) => state.dark)
+  const searchOpen = useNupooStore((state) => state.searchOpen)
+  const query = useNupooStore((state) => state.query)
+  const saveState = useNupooStore((state) => state.saveState)
+  const hydrated = useNupooStore((state) => state.hydrated)
+  const initialize = useNupooStore((state) => state.initialize)
+  const selectPage = useNupooStore((state) => state.selectPage)
+  const createPage = useNupooStore((state) => state.createPage)
+  const updatePage = useNupooStore((state) => state.updatePage)
+  const deletePage = useNupooStore((state) => state.deletePage)
+  const toggleFavorite = useNupooStore((state) => state.toggleFavorite)
+  const setSidebarOpen = useNupooStore((state) => state.setSidebarOpen)
+  const toggleDark = useNupooStore((state) => state.toggleDark)
+  const setSearchOpen = useNupooStore((state) => state.setSearchOpen)
+  const setQuery = useNupooStore((state) => state.setQuery)
+  const setSaveState = useNupooStore((state) => state.setSaveState)
+  const [mobileSidebar, setMobileSidebar] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pathId = window.location.pathname.startsWith('/page/') ? decodeURIComponent(window.location.pathname.slice(6)) : ''
+    const requested = initialPageId || params.get('page') || pathId
+    initialize(requested || undefined)
+  }, [initialPageId, initialize])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+  }, [dark])
+
+  useEffect(() => {
+    if (!hydrated) return
+    setSaveState('saving')
+    const timer = window.setTimeout(() => {
+      dataService.save(pages)
+      setSaveState('saved')
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [pages, hydrated, setSaveState])
+
+  useEffect(() => {
+    if (hydrated && activePageId) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('page', activePageId)
+      window.history.replaceState(null, '', `${url.pathname}${url.search}`)
+    }
+  }, [activePageId, hydrated])
+
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      const mod = event.metaKey || event.ctrlKey
+      if (mod && event.key.toLowerCase() === 'k') { event.preventDefault(); setSearchOpen(true) }
+      if (mod && event.key.toLowerCase() === 'n') { event.preventDefault(); const id = createPage(null); selectPage(id) }
+      if (event.key === 'Escape') setSearchOpen(false)
+    }
+    window.addEventListener('keydown', keyboard)
+    return () => window.removeEventListener('keydown', keyboard)
+  }, [createPage, selectPage, setSearchOpen])
+
+  const current = pages.find((page) => page.id === activePageId)
+  const favoriteCount = pages.filter((page) => page.favorite).length
+
+  const handleCreate = (parentId: string | null = null) => {
+    const id = createPage(parentId)
+    selectPage(id)
+    setMobileSidebar(false)
+  }
+
+  const navigate = (id: string) => {
+    selectPage(id)
+    setMobileSidebar(false)
+  }
+
+  if (!hydrated) return <div className="grid min-h-screen place-items-center bg-white text-sm text-zinc-400 dark:bg-zinc-950">Načítání…</div>
+
+  return <div className="flex min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    {sidebarOpen && <>
+      <aside className="hidden w-72 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50/80 md:flex dark:border-zinc-800 dark:bg-zinc-900/50">
+        <div className="flex items-center gap-2 px-3 py-3 text-sm font-semibold"><div className="grid size-7 place-items-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-black">N</div><span>Nupoo</span><span className="ml-auto text-[10px] font-normal text-zinc-400">LOCAL</span></div>
+        <div className="space-y-1 px-2">
+          <button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800" onClick={() => handleCreate(null)}><FilePlus2 size={16} /> Nová stránka <kbd className="ml-auto rounded border border-zinc-300 px-1 text-[10px] text-zinc-400 dark:border-zinc-700">⌘N</kbd></button>
+          <button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800" onClick={() => setSearchOpen(true)}><Search size={16} /> Hledat <kbd className="ml-auto rounded border border-zinc-300 px-1 text-[10px] text-zinc-400 dark:border-zinc-700">⌘K</kbd></button>
+        </div>
+        <div className="px-3 pb-1 pt-5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Stránky</div>
+        <div className="flex-1 overflow-auto px-2 pb-2"><PageTree pages={pages} activeId={activePageId} onSelect={navigate} onFavorite={toggleFavorite} onAddChild={(id) => handleCreate(id)} /></div>
+        <div className="border-t border-zinc-200 p-2 dark:border-zinc-800">
+          <div className="mb-1 flex items-center gap-2 px-2 py-1 text-[11px] text-zinc-400"><Star size={12} className="fill-current" /> {favoriteCount} oblíbených</div>
+          <button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800" onClick={toggleDark}>{dark ? <Sun size={16} /> : <Moon size={16} />} {dark ? 'Světlý režim' : 'Tmavý režim'}</button>
+        </div>
+      </aside>
+      {mobileSidebar && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onMouseDown={() => setMobileSidebar(false)}><aside className="h-full w-[86%] max-w-sm border-r border-zinc-200 bg-white p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onMouseDown={(event) => event.stopPropagation()}><div className="mb-4 flex items-center justify-between text-sm font-semibold"><span>Nupoo</span><button onClick={() => setMobileSidebar(false)} className="rounded p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Zavřít menu"><X size={18} /></button></div><button onClick={() => handleCreate(null)} className="mb-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"><Plus size={16} /> Nová stránka</button><button onClick={() => setSearchOpen(true)} className="mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"><Search size={16} /> Hledat</button><PageTree pages={pages} activeId={activePageId} onSelect={navigate} onFavorite={toggleFavorite} onAddChild={(id) => handleCreate(id)} /></aside></div>}
+    </>}
+    <main className="min-w-0 flex-1">
+      <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-white/85 px-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85">
+        <button className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:hidden" onClick={() => setMobileSidebar(true)} aria-label="Otevřít menu"><PanelLeft size={17} /></button>
+        <button className="hidden rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:block" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Přepnout postranní panel"><PanelLeft size={17} /></button>
+        <div className="min-w-0 truncate text-sm text-zinc-500">{current?.title || 'Nupoo'}</div>
+        <div className="flex-1" />
+        <div className="hidden items-center gap-1 text-[11px] text-zinc-400 sm:flex">{saveState === 'saving' ? <><Loader2 size={12} className="animate-spin" /> Ukládám</> : saveState === 'saved' ? <><Check size={12} /> Uloženo</> : null}</div>
+        <button onClick={() => setSearchOpen(true)} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 sm:hidden" aria-label="Hledat"><Search size={17} /></button>
+        <button onClick={toggleDark} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Přepnout režim">{dark ? <Sun size={17} /> : <Moon size={17} />}</button>
+        {current && current.id !== 'welcome' && <button onClick={() => deletePage(current.id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" aria-label="Smazat stránku"><Trash2 size={17} /></button>}
+      </header>
+      {current ? <Editor page={current} onChange={updatePage} /> : <div className="p-12 text-sm text-zinc-500">Stránka nebyla nalezena.</div>}
+    </main>
+    {searchOpen && <SearchDialog pages={pages} query={query} onQuery={setQuery} onClose={() => setSearchOpen(false)} onSelect={navigate} />}
+  </div>
 }
