@@ -55,13 +55,11 @@ function PageNode({ page, depth, isLast, expanded, toggle, pages, activeId, onSe
   const isActive = activeId === page.id
 
   return (
-    <motion.div layout="position" className="relative" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.14 }}>
-      {depth > 0 && (
-        <>
-          <span aria-hidden className={`page-tree-rail ${isLast ? 'page-tree-rail-last' : 'page-tree-rail-through'}`} />
-          <span aria-hidden className="page-tree-elbow" />
-        </>
-      )}
+    <motion.div layout="position" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.14 }} className="relative">
+      {depth > 0 && <>
+        <span aria-hidden className={`page-tree-rail ${isLast ? 'page-tree-rail-last' : 'page-tree-rail-through'}`} />
+        <span aria-hidden className="page-tree-elbow" />
+      </>}
 
       <motion.div
         layout="position"
@@ -87,11 +85,12 @@ function PageNode({ page, depth, isLast, expanded, toggle, pages, activeId, onSe
         <Button
           variant="ghost"
           onClick={() => onSelect(page.id)}
-          whileTap={{ scale: 0.985 } as never}
           className="page-tree-main relative z-10 min-w-0 flex-1 justify-start gap-2 rounded-md px-1.5 py-1.5 text-left text-[13px] font-normal hover:bg-transparent"
           aria-current={isActive ? 'page' : undefined}
         >
-          <motion.span animate={{ scale: isActive ? 1.04 : 1 }} transition={SPRING} className="page-tree-icon" aria-hidden><FileText size={14} strokeWidth={1.8} /></motion.span>
+          <motion.span animate={{ scale: isActive ? 1.04 : 1 }} transition={SPRING} className="page-tree-icon" aria-hidden>
+            <FileText size={14} strokeWidth={1.8} />
+          </motion.span>
           <span className="page-tree-title">{page.title || 'Bez názvu'}</span>
           {page.favorite && <Star size={11} className="page-tree-star shrink-0 fill-current text-muted-foreground" aria-hidden />}
         </Button>
@@ -118,19 +117,7 @@ function PageNode({ page, depth, isLast, expanded, toggle, pages, activeId, onSe
         {hasChildren && isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.19, ease: [0.22, 1, 0.36, 1] }} className="relative overflow-hidden">
             {children.map((child, index) => (
-              <PageNode
-                key={child.id}
-                page={child}
-                pages={pages}
-                depth={depth + 1}
-                isLast={index === children.length - 1}
-                activeId={activeId}
-                expanded={expanded}
-                toggle={toggle}
-                onSelect={onSelect}
-                onFavorite={onFavorite}
-                onAddChild={onAddChild}
-              />
+              <PageNode key={child.id} page={child} pages={pages} depth={depth + 1} isLast={index === children.length - 1} activeId={activeId} expanded={expanded} toggle={toggle} onSelect={onSelect} onFavorite={onFavorite} onAddChild={onAddChild} />
             ))}
           </motion.div>
         )}
@@ -139,11 +126,21 @@ function PageNode({ page, depth, isLast, expanded, toggle, pages, activeId, onSe
   )
 }
 
-export default function PageTree(props: PageTreeProps) {
-  const autoExpanded = useMemo(() => parentIdsFor(props.pages, props.activeId), [props.pages, props.activeId])
+export default function PageTree({ pages, activeId, onSelect, onFavorite, onAddChild }: PageTreeProps) {
+  const autoExpanded = useMemo(() => parentIdsFor(pages, activeId), [pages, activeId])
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+
   useEffect(() => setExpanded((current) => new Set([...current, ...autoExpanded])), [autoExpanded])
   const toggle = (id: string) => setExpanded((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
-  const roots = childrenOf(props.pages, null)
-  return <MotionConfig reducedMotion="user"><nav aria-label="Struktura stránek" className="page-tree">{roots.map((page, index) => <PageNode key={page.id} page={page} pages={props.pages} depth={0} isLast={index === roots.length - 1} activeId={props.activeId} expanded={expanded} toggle={toggle} onSelect={props.onSelect} onFavorite={props.onFavorite} onAddChild={props.onAddChild} />)}</nav></MotionConfig>
+  const roots = childrenOf(pages, null)
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <nav aria-label="Struktura stránek" className="page-tree">
+        <AnimatePresence initial={false} mode="popLayout">
+          {roots.map((page, index) => <PageNode key={page.id} page={page} pages={pages} depth={0} isLast={index === roots.length - 1} activeId={activeId} expanded={expanded} toggle={toggle} onSelect={onSelect} onFavorite={onFavorite} onAddChild={onAddChild} />)}
+        </AnimatePresence>
+      </nav>
+    </MotionConfig>
+  )
 }
