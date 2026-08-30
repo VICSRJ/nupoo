@@ -1,0 +1,127 @@
+:root {
+  --neu-surface: #f1f1f3;
+  --neu-light: rgba(255, 255, 255, 0.9);
+  --neu-shadow: rgba(24, 24, 27, 0.1);
+  --neu-raised: 3px 3px 8px var(--neu-shadow), -3px -3px 8px var(--neu-light);
+  --neu-raised-sm: 2px 2px 6px rgba(24,24,27,.075), -2px -2px 6px rgba(255,255,255,.72);
+  --neu-inset: inset 2px 2px 6px rgba(24,24,27,.085), inset -2px -2px 6px rgba(255,255,255,.72);
+}
+
+.dark {
+  --neu-surface: #111114;
+  --neu-light: rgba(255,255,255,.045);
+  --neu-shadow: rgba(0,0,0,.52);
+  --neu-raised: 4px 4px 10px var(--neu-shadow), -3px -3px 8px var(--neu-light);
+  --neu-raised-sm: 2px 2px 7px rgba(0,0,0,.4), -2px -2px 6px rgba(255,255,255,.028);
+  --neu-inset: inset 2px 2px 6px rgba(0,0,0,.48), inset -2px -2px 6px rgba(255,255,255,.022);
+}
+
+/* Soft material: depth is deliberately low-contrast and concentrated on controls. */
+.neu-soft,
+.page-tree-item.is-active,
+.page-title-icon,
+.block-control,
+.inline-tool,
+.slash-menu,
+.block-type-menu,
+.block-context-menu {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-sm);
+}
+
+.page-tree-item {
+  border: 1px solid transparent;
+}
+
+.page-tree-item:hover {
+  box-shadow: var(--neu-raised-sm);
+}
+
+.page-tree-item.is-active {
+  border-color: rgba(255,255,255,.35);
+}
+
+.dark .page-tree-item.is-active {
+  border-color: rgba(255,255,255,.035);
+}
+
+.page-tree-chevron:hover,
+.page-tree-action:hover,
+.block-control:hover,
+.inline-tool:hover,
+.block-type-item:hover,
+.block-type-item.is-active {
+  box-shadow: var(--neu-raised);
+}
+
+.page-tree-chevron:active,
+.page-tree-action:active,
+.block-control:active,
+.inline-tool:active,
+.block-type-item:active {
+  box-shadow: var(--neu-inset);
+  transform: scale(.97);
+}
+
+.page-tree-chevron,
+.page-tree-action,
+.block-control,
+.inline-tool,
+.block-type-item {
+  transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .18s ease, background-color .18s ease, color .18s ease;
+}
+
+.page-tree-item:hover .page-tree-icon {
+  transform: translateY(-.5px);
+}
+
+.page-title-icon {
+  border-color: rgba(255,255,255,.42);
+}
+
+.page-title-row:focus-within .page-title-icon {
+  box-shadow: var(--neu-inset);
+  transform: translateY(0);
+}
+
+/* Every meaningful movement gets a small spatial cue; ambient motion stays off. */
+.block-row.is-active {
+  border-radius: 10px;
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.35);
+}
+
+.block-toolbar {
+  transition: opacity .16s ease, visibility .16s ease, transform .2s cubic-bezier(.2,.8,.2,1);
+}
+
+.inline-toolbar {
+  transform-origin: center bottom;
+}
+
+.inline-toolbar .inline-tool.is-active {
+  box-shadow: var(--neu-inset);
+}
+
+.motion-pop {
+  animation: nupoo-pop .22s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.motion-settle {
+  animation: nupoo-settle .26s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes nupoo-pop {
+  from { opacity: 0; transform: translateY(4px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes nupoo-settle {
+  from { opacity: 0; transform: translateX(-3px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-pop,
+  .motion-settle { animation: none; }
+  .page-tree-item:hover { transform: none; }
+}
