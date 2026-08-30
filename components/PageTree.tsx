@@ -3,6 +3,8 @@
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ChevronRight, FileText, Plus, Star } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Page } from '@/lib/storage'
 
 const INDENT = 22
@@ -20,15 +22,13 @@ function childrenOf(pages: Page[], parentId: string | null) {
 
 function parentIdsFor(pages: Page[], activeId: string) {
   const ids = new Set<string>()
-  const visited = new Set<string>()
+  const seen = new Set<string>()
   let page = pages.find((item) => item.id === activeId)
-
-  while (page?.parentId && !visited.has(page.parentId)) {
-    visited.add(page.parentId)
+  while (page?.parentId && !seen.has(page.parentId)) {
+    seen.add(page.parentId)
     ids.add(page.parentId)
     page = pages.find((item) => item.id === page?.parentId && !item.trashedAt)
   }
-
   return ids
 }
 
@@ -56,100 +56,44 @@ function PageNode({ page, depth, isLast, expanded, toggle, pages, activeId, onSe
 
   return (
     <motion.div layout="position" initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.16, ease: 'easeOut' }} className="relative">
+      {depth > 0 && (
+        <>
+          <span aria-hidden className="pointer-events-none absolute left-[-11px] top-0 w-px bg-border/70" style={{ height: isLast ? '18px' : '100%' }} />
+          <span aria-hidden className="pointer-events-none absolute left-[-11px] top-1/2 h-px w-3 bg-border/70" />
+        </>
+      )}
+
       <motion.div
         layout="position"
         whileHover={{ x: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 36 }}
-        className={`group relative flex min-h-9 items-center rounded-[10px] pr-1 transition-colors duration-150 ${isActive ? 'text-zinc-50' : 'text-zinc-300 hover:text-zinc-100'}`}
+        className={`group relative flex min-h-9 items-center rounded-lg pr-1 ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-border/70' : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/70'}`}
         style={{ marginLeft: depth * INDENT }}
       >
-        {isActive && (
-          <motion.div
-            layoutId="nupoo-page-tree-active"
-            className="absolute inset-0 rounded-[10px] bg-zinc-800/90 shadow-[inset_1px_1px_0_rgba(255,255,255,0.045),inset_-1px_-1px_0_rgba(0,0,0,0.28),0_2px_10px_rgba(0,0,0,0.15)] dark:bg-white/[0.075]"
-            transition={SPRING}
-          />
-        )}
-
         <div className="relative z-10 grid size-7 shrink-0 place-items-center">
-          <motion.button
-            type="button"
-            onClick={() => hasChildren && toggle(page.id)}
-            disabled={!hasChildren}
-            className="grid size-6 place-items-center rounded-md text-zinc-500 transition-colors hover:bg-white/[0.07] hover:text-zinc-200 disabled:opacity-0"
-            whileTap={hasChildren ? { scale: 0.86 } : undefined}
-            aria-label={`${isExpanded ? 'Sbalit' : 'Rozbalit'} ${page.title || 'stránku'}`}
-            aria-expanded={hasChildren ? isExpanded : undefined}
-          >
-            {hasChildren && (
-              <motion.span animate={{ rotate: isExpanded ? 90 : 0 }} transition={SPRING} className="grid place-items-center">
-                <ChevronRight size={13} />
-              </motion.span>
-            )}
-          </motion.button>
+          <Button variant="ghost" size="icon-sm" disabled={!hasChildren} onClick={() => hasChildren && toggle(page.id)} className="text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-0" aria-label={`${isExpanded ? 'Sbalit' : 'Rozbalit'} ${page.title || 'stránku'}`} aria-expanded={hasChildren ? isExpanded : undefined}>
+            <motion.span animate={{ rotate: isExpanded ? 90 : 0 }} transition={SPRING} className="grid place-items-center"><ChevronRight size={13} /></motion.span>
+          </Button>
         </div>
 
-        <motion.button
-          type="button"
-          onClick={() => onSelect(page.id)}
-          whileTap={{ scale: 0.985 }}
-          className="relative z-10 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[13px] leading-5"
-          aria-current={isActive ? 'page' : undefined}
-        >
-          <motion.span animate={{ scale: isActive ? 1.04 : 1 }} transition={SPRING} className="grid size-5 shrink-0 place-items-center" aria-hidden="true">
-            <FileText size={14} strokeWidth={1.75} className={isActive ? 'text-zinc-100' : 'text-zinc-400'} />
-          </motion.span>
+        <Button variant="ghost" onClick={() => onSelect(page.id)} className="relative z-10 min-w-0 flex-1 justify-start gap-2 rounded-md px-1.5 py-1.5 text-left text-[13px] font-normal hover:bg-transparent" aria-current={isActive ? 'page' : undefined}>
+          <motion.span animate={{ scale: isActive ? 1.04 : 1 }} transition={SPRING} className="grid size-5 shrink-0 place-items-center text-muted-foreground" aria-hidden><FileText size={14} strokeWidth={1.75} /></motion.span>
           <span className="min-w-0 flex-1 truncate">{page.title || 'Bez názvu'}</span>
-          {page.favorite && <Star size={11} className="shrink-0 fill-current text-zinc-400" aria-hidden="true" />}
-        </motion.button>
+          {page.favorite && <Star size={11} className="shrink-0 fill-current text-muted-foreground" aria-hidden />}
+        </Button>
 
-        <div className="relative z-10 flex items-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
-          <motion.button
-            type="button"
-            onClick={() => onAddChild(page.id)}
-            whileTap={{ scale: 0.84 }}
-            className="grid size-6 place-items-center rounded-md text-zinc-500 hover:bg-white/[0.08] hover:text-zinc-100"
-            title="Nová podstránka"
-            aria-label={`Nová podstránka pro ${page.title || 'Bez názvu'}`}
-          >
-            <Plus size={12} />
-          </motion.button>
-          <motion.button
-            type="button"
-            onClick={() => onFavorite(page.id)}
-            whileTap={{ scale: 0.84, rotate: -10 }}
-            className="grid size-6 place-items-center rounded-md text-zinc-500 hover:bg-white/[0.08] hover:text-zinc-100"
-            title={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
-            aria-label={page.favorite ? 'Odebrat z oblíbených' : 'Přidat z oblíbených'}
-          >
-            <Star size={11} className={page.favorite ? 'fill-current' : ''} />
-          </motion.button>
-        </div>
+        <TooltipProvider delayDuration={350}>
+          <div className="relative z-10 flex items-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => onAddChild(page.id)} className="text-muted-foreground hover:bg-accent hover:text-accent-foreground" aria-label={`Nová podstránka pro ${page.title || 'Bez názvu'}`}><Plus size={12} /></Button></TooltipTrigger><TooltipContent>Nová podstránka</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" onClick={() => onFavorite(page.id)} className="text-muted-foreground hover:bg-accent hover:text-accent-foreground" aria-label={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}><Star size={11} className={page.favorite ? 'fill-current' : ''} /></Button></TooltipTrigger><TooltipContent>{page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}</TooltipContent></Tooltip>
+          </div>
+        </TooltipProvider>
       </motion.div>
 
       <AnimatePresence initial={false}>
         {hasChildren && isExpanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} className="relative overflow-hidden">
-            <div className="relative" style={{ marginLeft: depth * INDENT + 10, paddingLeft: 12 }}>
-              <span aria-hidden="true" className="pointer-events-none absolute bottom-2 left-0 top-0 w-px bg-zinc-700/30 dark:bg-zinc-700/40" />
-              {children.map((child, index) => (
-                <div key={child.id} className="relative">
-                  <span aria-hidden="true" className="pointer-events-none absolute left-0 top-[18px] h-px w-3 bg-zinc-700/30 dark:bg-zinc-700/40" />
-                  <PageNode
-                    page={child}
-                    pages={pages}
-                    depth={0}
-                    isLast={index === children.length - 1}
-                    activeId={activeId}
-                    expanded={expanded}
-                    toggle={toggle}
-                    onSelect={onSelect}
-                    onFavorite={onFavorite}
-                    onAddChild={onAddChild}
-                  />
-                </div>
-              ))}
-            </div>
+            {children.map((child, index) => <PageNode key={child.id} page={child} pages={pages} depth={depth + 1} isLast={index === children.length - 1} activeId={activeId} expanded={expanded} toggle={toggle} onSelect={onSelect} onFavorite={onFavorite} onAddChild={onAddChild} />)}
           </motion.div>
         )}
       </AnimatePresence>
@@ -161,46 +105,8 @@ export default function PageTree({ pages, activeId, onSelect, onFavorite, onAddC
   const autoExpanded = useMemo(() => parentIdsFor(pages, activeId), [pages, activeId])
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
 
-  useEffect(() => {
-    setExpanded((current) => {
-      const next = new Set(current)
-      autoExpanded.forEach((id) => next.add(id))
-      return next
-    })
-  }, [autoExpanded])
+  useEffect(() => setExpanded((current) => new Set([...current, ...autoExpanded])), [autoExpanded])
+  const toggle = (id: string) => setExpanded((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
 
-  const toggle = (id: string) => {
-    setExpanded((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const roots = childrenOf(pages, null)
-
-  return (
-    <MotionConfig reducedMotion="user">
-      <nav aria-label="Struktura stránek" className="page-tree py-1">
-        <AnimatePresence initial={false} mode="popLayout">
-          {roots.map((page, index) => (
-            <PageNode
-              key={page.id}
-              page={page}
-              pages={pages}
-              depth={0}
-              isLast={index === roots.length - 1}
-              activeId={activeId}
-              expanded={expanded}
-              toggle={toggle}
-              onSelect={onSelect}
-              onFavorite={onFavorite}
-              onAddChild={onAddChild}
-            />
-          ))}
-        </AnimatePresence>
-      </nav>
-    </MotionConfig>
-  )
+  return <MotionConfig reducedMotion="user"><nav aria-label="Struktura stránek" className="py-1">{childrenOf(pages, null).map((page, index, roots) => <PageNode key={page.id} page={page} pages={pages} depth={0} isLast={index === roots.length - 1} activeId={activeId} expanded={expanded} toggle={toggle} onSelect={onSelect} onFavorite={onFavorite} onAddChild={onAddChild} />)}</nav></MotionConfig>
 }
