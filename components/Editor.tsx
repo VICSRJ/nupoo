@@ -37,15 +37,16 @@ function SlashMenu({ query, onPick }: { query: string; onPick: (item: MenuItem) 
   return <div className="slash-menu" onMouseDown={(event) => event.preventDefault()}>{items.length ? items.map((item) => <button key={item.type} type="button" onClick={() => onPick(item)} className="block-type-item"><span className="block-menu-icon">{item.icon}</span><span>{item.label}</span><kbd className="ml-auto text-[9px] text-zinc-400">/{item.shortcut}</kbd></button>) : <div className="px-3 py-3 text-xs text-zinc-400">Žádný příkaz.</div>}</div>
 }
 
-function InlineToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  if (!editor) return null
-  return <div className="inline-toolbar" onMouseDown={(event) => event.preventDefault()}><button className={`inline-tool ${editor.isActive('bold') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()} aria-label="Tučné"><Bold size={14} /></button><button className={`inline-tool ${editor.isActive('italic') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="Kurzíva"><Italic size={14} /></button><button className={`inline-tool ${editor.isActive('strike') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()} aria-label="Přeškrtnutí"><Strikethrough size={14} /></button><button className={`inline-tool ${editor.isActive('code') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleCode().run()} aria-label="Inline kód"><Code2 size={14} /></button></div>
+function InlineToolbar({ editor, position }: { editor: ReturnType<typeof useEditor>; position: { left: number; top: number } | null }) {
+  if (!editor || !position) return null
+  return <div className="inline-toolbar" style={{ left: position.left, top: position.top }} onMouseDown={(event) => event.preventDefault()}><button className={`inline-tool ${editor.isActive('bold') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()} aria-label="Tučné"><Bold size={14} /></button><button className={`inline-tool ${editor.isActive('italic') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="Kurzíva"><Italic size={14} /></button><button className={`inline-tool ${editor.isActive('strike') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()} aria-label="Přeškrtnutí"><Strikethrough size={14} /></button><button className={`inline-tool ${editor.isActive('code') ? 'is-active' : ''}`} onClick={() => editor.chain().focus().toggleCode().run()} aria-label="Inline kód"><Code2 size={14} /></button></div>
 }
 
 function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onDuplicate, onAdd }: { block: Block; active: boolean; onActivate: () => void; onContextMenu: (event: React.MouseEvent) => void; onUpdate: (value: Partial<Block>) => void; onDelete: () => void; onDuplicate: () => void; onAdd: () => void }) {
   const [typeMenuOpen, setTypeMenuOpen] = useState(false)
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashQuery, setSlashQuery] = useState('')
+  const [inlinePosition, setInlinePosition] = useState<{ left: number; top: number } | null>(null)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id })
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: { levels: [1, 2, 3] } }), TaskList, TaskItem.configure({ nested: true }), Placeholder.configure({ placeholder: 'Napiš něco… / pro příkazy' })],
@@ -53,12 +54,27 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
     editorProps: {
       attributes: { 'aria-label': typeLabel(block) },
       handleKeyDown: (_view, event) => {
-        if (event.key === 'Escape') { setSlashOpen(false); return false }
+        if (event.key === 'Escape') { setSlashOpen(false); setInlinePosition(null); return false }
         if (event.key === '/' && editor && !editor.getText().trim()) { setSlashOpen(true); setSlashQuery('/'); return false }
         return false
       },
     },
     onFocus: onActivate,
+    onBlur: () => window.setTimeout(() => setInlinePosition(null), 0),
+    onSelectionUpdate: ({ editor: currentEditor }) => {
+      const { from, to } = currentEditor.state.selection
+      const start = currentEditor.view.coordsAtPos(from)
+      const end = currentEditor.view.coordsAtPos(to)
+      const centerX = (Math.min(start.left, end.left) + Math.max(start.right, end.right)) / 2
+      const toolbarWidth = 132
+      const toolbarHeight = 36
+      const gap = 10
+      const left = Math.max(8, Math.min(window.innerWidth - toolbarWidth - 8, centerX - toolbarWidth / 2))
+      const above = Math.min(start.top, end.top) - toolbarHeight - gap
+      const below = Math.max(start.bottom, end.bottom) + gap
+      const top = above >= 8 ? above : below
+      setInlinePosition({ left, top: Math.max(8, Math.min(window.innerHeight - toolbarHeight - 8, top)) })
+    },
     onUpdate: ({ editor: currentEditor }) => {
       const text = currentEditor.getText()
       onUpdate({ text, content: currentEditor.getJSON() })
@@ -68,6 +84,27 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
   })
 
   useEffect(() => { if (!editor || editor.isFocused) return; const incoming = blockContent(block); if (JSON.stringify(editor.getJSON()) !== JSON.stringify(incoming)) editor.commands.setContent(incoming, false) }, [block, editor])
+  useEffect(() => {
+    if (!editor) return
+    const updatePosition = () => {
+      if (!editor.isFocused) return
+      const { from, to } = editor.state.selection
+      const start = editor.view.coordsAtPos(from)
+      const end = editor.view.coordsAtPos(to)
+      const toolbarWidth = 132
+      const toolbarHeight = 36
+      const gap = 10
+      const centerX = (Math.min(start.left, end.left) + Math.max(start.right, end.right)) / 2
+      const left = Math.max(8, Math.min(window.innerWidth - toolbarWidth - 8, centerX - toolbarWidth / 2))
+      const above = Math.min(start.top, end.top) - toolbarHeight - gap
+      const below = Math.max(start.bottom, end.bottom) + gap
+      const top = above >= 8 ? above : below
+      setInlinePosition({ left, top: Math.max(8, Math.min(window.innerHeight - toolbarHeight - 8, top)) })
+    }
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => { window.removeEventListener('resize', updatePosition); window.removeEventListener('scroll', updatePosition, true) }
+  }, [editor])
 
   const changeType = (type: BlockType, level?: 1 | 2 | 3) => {
     const next: Block = { ...block, type, level: type === 'heading' ? level || 1 : undefined }
@@ -85,7 +122,7 @@ function Row({ block, active, onActivate, onContextMenu, onUpdate, onDelete, onD
   const slashOffset = useMemo(() => (slashOpen && editor ? Math.min(editor.getText().length, 10) : 0), [slashOpen, editor])
   return <div ref={setNodeRef} onFocusCapture={onActivate} onContextMenu={onContextMenu} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.55 : 1 }} className={`block-row relative flex min-w-0 items-start rounded-md ${active ? 'is-active' : ''}`}>
     <div className={`block-toolbar ${active ? 'is-visible' : ''}`} onMouseDown={(event) => event.preventDefault()}><button type="button" onClick={onAdd} aria-label="Přidat blok" className="block-control"><Plus size={13} /></button><div className="relative"><button type="button" onClick={() => setTypeMenuOpen((value) => !value)} aria-label={`Změnit typ: ${typeLabel(block)}`} className={`block-control ${typeMenuOpen ? 'is-pressed' : ''}`}><span className="flex items-center">{BLOCK_TYPES.find((item) => item.type === block.type)?.icon}</span></button>{typeMenuOpen && <TypeMenu block={block} onChange={changeType} />}</div><button type="button" {...listeners} {...attributes} aria-label="Přesunout blok" className="block-control cursor-grab active:cursor-grabbing"><GripVertical size={13} /></button></div>
-    <div className="relative min-w-0 flex-1 py-0.5">{active && editor && <InlineToolbar editor={editor} />}{slashOpen && editor && <div className="absolute left-0 top-full z-40" style={{ transform: `translateY(${slashOffset}px)` }}><SlashMenu query={slashQuery} onPick={pickSlash} /></div>}{editor && <EditorContent editor={editor} className="tiptap" />}</div>
+    <div className="relative min-w-0 flex-1 py-0.5"><InlineToolbar editor={editor} position={active ? inlinePosition : null} />{slashOpen && editor && <div className="absolute left-0 top-full z-40" style={{ transform: `translateY(${slashOffset}px)` }}><SlashMenu query={slashQuery} onPick={pickSlash} /></div>}{editor && <EditorContent editor={editor} className="tiptap" />}</div>
   </div>
 }
 
