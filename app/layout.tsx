@@ -1,4 +1,5 @@
 import './globals.css'
+import './nupoo-polish.css'
 import type { Metadata, Viewport } from 'next'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
