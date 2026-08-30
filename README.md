@@ -1,6 +1,6 @@
 # Nupoo
 
-Nupoo je lehký **Notion-like blokový editor** postavený na Next.js, Reactu, TypeScriptu, Tailwind CSS, Tiptapu, dnd-kit a Zustandu.
+Nupoo je lehký **Blokový editor** postavený na Next.js, Reactu, TypeScriptu, Tailwind CSS, Tiptapu, dnd-kit a Zustandu.
 
 ## Co umí
 
