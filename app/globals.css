@@ -2,12 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+:root{--surface:#fff;--surface-soft:#fafafa;--ink:#18181b;--ink-soft:#71717a;--line:rgba(24,24,27,.08);--shadow-paper:0 1px 2px rgba(24,24,27,.03),0 12px 30px rgba(24,24,27,.025)}
+.dark{--surface:#09090b;--surface-soft:#111113;--ink:#f4f4f5;--ink-soft:#a1a1aa;--line:rgba(244,244,245,.09);--shadow-paper:0 1px 2px rgba(0,0,0,.25),0 16px 36px rgba(0,0,0,.18)}
+
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#18181b}
-body{font-feature-settings:"cv02","cv03","cv04","cv11"}
-.dark body{background:#09090b;color:#f4f4f5}
+html,body{margin:0;min-height:100%;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--surface);color:var(--ink)}
+body{font-feature-settings:"cv02","cv03","cv04","cv11";background-image:radial-gradient(circle at 1px 1px,rgba(24,24,27,.025) 1px,transparent 0);background-size:22px 22px}
+.dark body{background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.02) 1px,transparent 0)}
 button,input{font:inherit}
 button{touch-action:manipulation}
+
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(24,24,27,.12);border-radius:999px}
+.dark ::-webkit-scrollbar-thumb{background:rgba(244,244,245,.13)}
+
+.page-surface{background:rgba(255,255,255,.76);border:1px solid rgba(24,24,27,.055);box-shadow:var(--shadow-paper);border-radius:18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.dark .page-surface{background:rgba(17,17,19,.72);border-color:rgba(244,244,245,.07)}
 
 .tiptap{outline:none;min-width:0;width:100%;font-size:17px;line-height:1.72;color:#27272a}
 .dark .tiptap{color:#e4e4e7}
@@ -25,6 +36,11 @@ button{touch-action:manipulation}
 .tiptap ol>li::marker{font-variant-numeric:tabular-nums;color:currentColor}
 .tiptap blockquote{margin:.65rem 0;border-left:3px solid #d4d4d8;padding:.1rem 0 .1rem 1rem;color:#71717a}
 .dark .tiptap blockquote{border-color:#52525b;color:#a1a1aa}
+.tiptap hr{border:0;border-top:1px solid #e4e4e7;margin:1rem 0}
+.dark .tiptap hr{border-color:#27272a}
+.tiptap a{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.tiptap mark{background:#fde68a;border-radius:3px;padding:0 .12em}
+.dark .tiptap mark{background:#6b4f08;color:#fff7cc}
 .tiptap pre{margin:.7rem 0;border:1px solid #e4e4e7;background:#f6f7f8;color:#27272a;border-radius:10px;padding:1rem 1.1rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .dark .tiptap pre{border-color:#27272a;background:#141416;color:#f4f4f5;box-shadow:none}
 .tiptap pre code{display:block;background:transparent!important;color:inherit;padding:0;border-radius:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:14px;line-height:1.65}
@@ -33,6 +49,16 @@ button{touch-action:manipulation}
 .tiptap p.is-editor-empty:first-child::before{content:attr(data-placeholder);color:#a1a1aa;float:left;height:0;pointer-events:none}
 .tiptap strong{font-weight:700}
 .tiptap em{font-style:italic}
+.tiptap u{text-decoration-thickness:1px;text-underline-offset:2px}
+
+.tiptap table{width:100%;border-collapse:separate;border-spacing:0;margin:.8rem 0;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden}
+.tiptap th,.tiptap td{min-width:90px;padding:.55rem .7rem;border-right:1px solid #e4e4e7;border-bottom:1px solid #e4e4e7;text-align:left;vertical-align:top}
+.tiptap th:last-child,.tiptap td:last-child{border-right:0}
+.tiptap tr:last-child th,.tiptap tr:last-child td{border-bottom:0}
+.tiptap th{background:#f7f7f8;font-size:.92em;font-weight:650}
+.dark .tiptap table{border-color:#27272a}
+.dark .tiptap th,.dark .tiptap td{border-color:#27272a}
+.dark .tiptap th{background:#18181b}
 
 .tiptap ul[data-type="taskList"]{list-style:none;padding:0;margin:.3rem 0}
 .tiptap ul[data-type="taskList"]>li{display:flex;align-items:flex-start;gap:.6rem;list-style:none;padding:.08rem 0;min-height:1.72em}
@@ -41,11 +67,11 @@ button{touch-action:manipulation}
 .tiptap ul[data-type="taskList"] li>div{min-width:0;flex:1}
 .tiptap ul[data-type="taskList"] li>div>p{margin:0;line-height:1.72}
 
-.block-row{position:relative;transition:background-color .12s ease}
+.block-row{position:relative;transition:background-color .12s ease,box-shadow .16s ease}
 .block-row.is-active{background:linear-gradient(90deg,rgba(244,244,245,.55),transparent 38%)}
 .dark .block-row.is-active{background:linear-gradient(90deg,rgba(39,39,42,.5),transparent 38%)}
+.block-row:hover .block-toolbar,.block-row:focus-within .block-toolbar{opacity:1;visibility:visible;pointer-events:auto}
 
-/* Block controls track the visual center of the active text row. */
 .block-toolbar{position:absolute;left:-76px;top:50%;z-index:25;display:flex;width:72px;align-items:center;justify-content:flex-end;gap:2px;padding-right:5px;transform:translateY(-50%);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .13s ease,visibility .13s ease}
 .block-toolbar.is-visible{opacity:1;visibility:visible;pointer-events:auto}
 .block-control{display:inline-flex;height:27px;width:27px;align-items:center;justify-content:center;border:1px solid transparent;border-radius:7px;background:transparent;color:#a1a1aa;transition:background-color .14s,border-color .14s,color .14s,transform .1s;cursor:pointer}
@@ -80,7 +106,6 @@ button{touch-action:manipulation}
 .dark .block-context-item.danger{color:#f87171}
 .dark .block-context-item.danger:hover{background:#3f1818}
 
-/* The inline formatter is viewport-anchored to the active selection/caret. */
 .inline-toolbar{position:fixed;z-index:120;display:flex;gap:2px;pointer-events:auto;border:1px solid #e4e4e7;background:rgba(255,255,255,.97);padding:4px;border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);will-change:left,top;transition:left .08s ease,top .08s ease,opacity .12s ease}
 .dark .inline-toolbar{border-color:#27272a;background:rgba(24,24,27,.97);box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .inline-tool{display:grid;height:26px;width:28px;place-items:center;border:0;border-radius:6px;background:transparent;color:#71717a;cursor:pointer}
