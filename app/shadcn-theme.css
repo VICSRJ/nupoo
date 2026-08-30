@@ -1,63 +1,34 @@
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.65rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 100%; --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%; --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%; --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%; --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%; --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%; --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%; --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 72.2% 50.6%; --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%; --input: 240 5.9% 90%; --ring: 240 5.9% 10%;
+    --radius: .65rem;
+    --sidebar-background: 0 0% 98%; --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%; --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%; --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%; --sidebar-ring: 217.2 91.2% 59.8%;
   }
-
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 240 5.9% 10%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 240 10% 3.9%; --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%; --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%; --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%; --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%; --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%; --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%; --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%; --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%; --input: 240 3.7% 15.9%; --ring: 240 4.9% 83.9%;
+    --sidebar-background: 240 5.9% 10%; --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 0 0% 98%; --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 240 3.7% 15.9%; --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%; --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -66,39 +37,27 @@
   body { @apply bg-background text-foreground; }
 }
 
-/* Lightweight neumorphism built on semantic shadcn tokens. */
 @layer components {
   .neu-control {
-    box-shadow: 2px 2px 7px hsl(var(--foreground) / 0.07), -2px -2px 7px hsl(var(--background) / 0.9);
-    border: 1px solid hsl(var(--border) / 0.7);
+    border: 1px solid hsl(var(--border) / .72);
+    box-shadow: 2px 2px 7px hsl(var(--foreground) / .065), -2px -2px 7px hsl(var(--background) / .82);
     transition: transform .16s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
   }
-  .neu-control:hover {
-    transform: translateY(-1px);
-    box-shadow: 3px 3px 9px hsl(var(--foreground) / 0.08), -2px -2px 8px hsl(var(--background) / 0.9);
-  }
-  .neu-control:active {
-    transform: translateY(0) scale(.985);
-    box-shadow: inset 2px 2px 6px hsl(var(--foreground) / 0.07), inset -2px -2px 6px hsl(var(--background) / 0.8);
-  }
-  .neu-surface {
-    background: hsl(var(--card) / .78);
-    box-shadow: 1px 1px 4px hsl(var(--foreground) / .045), -1px -1px 4px hsl(var(--background) / .72);
-  }
-  .glass-surface {
-    background: hsl(var(--background) / .76);
-    border: 1px solid hsl(var(--border) / .7);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-  }
-  .dark .neu-control {
-    box-shadow: 2px 2px 8px hsl(0 0% 0% / .42), -2px -2px 7px hsl(0 0% 100% / .025);
-  }
-  .dark .neu-surface {
-    box-shadow: 1px 1px 5px hsl(0 0% 0% / .35), -1px -1px 4px hsl(0 0% 100% / .02);
-  }
+  .neu-control:hover { transform: translateY(-1px); box-shadow: 3px 3px 9px hsl(var(--foreground) / .08), -2px -2px 8px hsl(var(--background) / .86); }
+  .neu-control:active { transform: scale(.985); box-shadow: inset 2px 2px 6px hsl(var(--foreground) / .06), inset -2px -2px 6px hsl(var(--background) / .78); }
+  .neu-surface { background: hsl(var(--card) / .78); box-shadow: 1px 1px 4px hsl(var(--foreground) / .04), -1px -1px 4px hsl(var(--background) / .7); }
+  .glass-surface { background: hsl(var(--background) / .76); border: 1px solid hsl(var(--border) / .7); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .dark .neu-control { box-shadow: 2px 2px 8px hsl(0 0% 0% / .42), -2px -2px 7px hsl(0 0% 100% / .025); }
+  .dark .neu-surface { box-shadow: 1px 1px 5px hsl(0 0% 0% / .35), -1px -1px 4px hsl(0 0% 100% / .02); }
+
+  /* Bridge the existing Workspace markup into the semantic shadcn theme. */
+  aside { background-color: hsl(var(--sidebar-background) / .92); border-color: hsl(var(--sidebar-border)); color: hsl(var(--sidebar-foreground)); }
+  header { border-color: hsl(var(--border)); background-color: hsl(var(--background) / .82); color: hsl(var(--foreground)); }
+  aside button, header button { transition: transform .14s ease, background-color .16s ease, color .16s ease, box-shadow .18s ease; }
+  aside button:hover, header button:hover { background-color: hsl(var(--accent) / .86); color: hsl(var(--accent-foreground)); }
+  aside button:active, header button:active { transform: scale(.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .neu-control { transition-duration: .01ms; }
+  .neu-control, aside button, header button { transition-duration: .01ms; }
 }
