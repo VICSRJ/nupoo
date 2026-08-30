@@ -2,7 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { blockContent } from './storage'
 
 describe('blockContent', () => {
-  it('creates headings', () => {
+  it.each([
+    ['paragraph', 'paragraph'],
+    ['heading', 'heading'],
+    ['bulletList', 'bulletList'],
+    ['orderedList', 'orderedList'],
+    ['taskList', 'taskList'],
+    ['blockquote', 'blockquote'],
+    ['codeBlock', 'codeBlock'],
+    ['horizontalRule', 'horizontalRule'],
+    ['table', 'table'],
+  ] as const)('creates valid Tiptap content for %s', (type, expected) => {
+    const result = blockContent({ type, text: '', ...(type === 'heading' ? { level: 2 as const } : {}) })
+    expect(result.type).toBe('doc')
+    expect(result.content?.[0]?.type).toBe(expected)
+  })
+
+  it('creates headings with the requested level', () => {
     expect(blockContent({ type: 'heading', text: 'Hello', level: 2 })).toMatchObject({
       content: [{ type: 'heading', attrs: { level: 2 } }],
     })
