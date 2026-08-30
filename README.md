@@ -1,40 +1,57 @@
 # Nupoo
 
-Nupoo je lehký **Blokový editor** postavený na Next.js, Reactu, TypeScriptu, Tailwind CSS, Tiptapu, dnd-kit a Zustandu.
+Nupoo je lehký local-first **blokový workspace** postavený na Next.js, Reactu, TypeScriptu, Tailwind CSS, Tiptapu, dnd-kit a Zustandu. Cíl je rychlé psaní bez serveru, s robustními daty, přirozenou manipulací s bloky a čistým UI.
 
-## Co umí
+## Aktuální funkce
 
-- blokový editor s podporou textu, nadpisů, seznamů, úkolů, citací a kódu
-- drag & drop řazení bloků
-- vlastní kontextové menu bloku
+- Rich text: tučné, kurzíva, podtržení, přeškrtnutí, highlight, inline code a odkazy
+- H1/H2/H3, odrážky, číslování, checklist, citace, oddělovače
+- tabulky s možností resize buněk
+- code blocks se syntax highlightingem a tab indentací
+- Markdown-like shortcuts (`# `, `## `, `### `, `- `, `1. `, `[ ] `, `> `, ``` ``` ```)
+- slash menu `/` pro rychlý výběr typu bloku
+- drag & drop řazení bloků s jemnou motion animací
+- block toolbar zarovnaný na skutečnou textovou řádku
+- selection toolbar přichycený ke skutečnému výběru textu
+- kontextové menu bloku: duplikovat, mazat, změnit typ
 - stránky a vnořené podstránky ve stromu
-- oblíbené stránky
-- rychlé fulltextové hledání názvů i obsahu
-- automatické ukládání do `localStorage` s indikací „Ukládám / Uloženo“
+- favorites, recent pages a breadcrumbs
+- fulltextové hledání + Command Palette
+- Undo / Redo
+- koš a obnova
+- Focus Mode
+- automatické ukládání s debounce a indikátorem stavu
+- JSON export / import celého workspace
+- bezpečná migrace starších `nupoo.pages.v1/v2/v3` dat
 - světlý / tmavý režim
-- klávesové zkratky `Ctrl/Cmd + K` a `Ctrl/Cmd + N`
-- responzivní ovládání pro desktop i mobil
+- responzivní desktop + mobile UI
 - statický export kompatibilní s GitHub Pages
 
 ## Architektura
 
 ```text
 app/
-  layout.tsx          # metadata + shell
-  page.tsx            # vstup do Workspace
-  globals.css         # globální a editorové styly
+  layout.tsx
+  page.tsx
+  globals.css
+
 components/
-  Workspace.tsx       # UI workspace, strom, hledání, navigace
-  Editor.tsx          # Tiptap + dnd-kit editor
+  Workspace.tsx
+  Editor.tsx
+  CommandPalette.tsx
+  TrashDialog.tsx
+
 lib/
-  storage.ts          # typy a bezpečná localStorage persistence
-  data-service.ts     # datová abstrakce nad storage/API
-  store.ts            # Zustand store
+  storage.ts              # typy, migrace a persistence
+  data-service.ts         # datová abstrakce
+  editor-extensions.ts    # centrální Tiptap konfigurace
+  markdown-shortcuts.ts   # vlastní Markdown shortcuts
+  export.ts               # workspace export/import
+  store.ts                # Zustand state
+  storage.test.ts         # unit testy datového modelu
 ```
 
 ### Datový model
-
-`Page` obsahuje identitu stránky, její rodičovskou stránku, metadata a pole bloků. `parentId` vytváří stromovou strukturu. `Block` je atomický obsahový prvek editoru.
 
 ```ts
 type Page = {
@@ -44,16 +61,31 @@ type Page = {
   favorite?: boolean
   parentId?: string | null
   blocks: Block[]
+  createdAt?: string
   updatedAt: string
+  lastOpenedAt?: string
+  trashedAt?: string | null
 }
 
 type Block = {
   id: string
-  type: 'paragraph' | 'heading' | 'bulletList' | 'orderedList' | 'taskList' | 'blockquote' | 'codeBlock'
+  type:
+    | 'paragraph'
+    | 'heading'
+    | 'bulletList'
+    | 'orderedList'
+    | 'taskList'
+    | 'blockquote'
+    | 'codeBlock'
+    | 'horizontalRule'
+    | 'table'
   level?: 1 | 2 | 3
   text: string
+  content?: JSONContent
 }
 ```
+
+`content` obsahuje skutečný Tiptap JSON dokument. `text` zůstává jako jednoduchý textový fallback pro search, migrace a kompatibilitu starších dat.
 
 ## Lokální vývoj
 
@@ -69,13 +101,14 @@ Aplikace poběží na `http://localhost:3000`.
 ```bash
 npm run type-check
 npm run lint
+npm run test
 npm run format:check
 npm run build
 ```
 
 ## Deployment
 
-GitHub Pages používá workflow `.github/workflows/pages.yml` a Next.js static export.
+GitHub Pages používá `.github/workflows/pages.yml` a Next.js static export. V GitHub Actions se automaticky použije `basePath=/nupoo`.
 
 Pro lokální produkční kontrolu:
 
@@ -83,22 +116,58 @@ Pro lokální produkční kontrolu:
 npm run preview
 ```
 
-Projekt používá `basePath=/nupoo` pouze v GitHub Actions prostředí. Mimo CI zůstává základní cesta prázdná.
+## Data a zálohy
 
-## Persistence a budoucí backend
+Workspace je local-first a ukládá dokumenty do browser persistence. Data se automaticky ukládají po krátkém debounce intervalu.
 
-UI není přímo navázané na `localStorage`. Workspace používá Zustand a datové operace jsou směrovány přes `lib/data-service.ts`. Díky tomu lze později nahradit local-first persistence REST/API implementací bez zásadního refaktoru UI.
+Před větším refaktorem lze použít:
+
+```text
+Exportovat → nupoo-YYYY-MM-DD.json
+```
+
+Import workspace nahrazuje aktuální data importovaným snapshotem.
+
+## Vývoj nového typu bloku
+
+1. Přidat typ do `BlockType` v `lib/storage.ts`.
+2. Přidat fallback strukturu do `blockContent()`.
+3. Přidat položku do `BLOCK_TYPES` v `components/Editor.tsx`.
+4. Přidat odpovídající Tiptap extension do `lib/editor-extensions.ts`.
+5. Přidat test do `lib/storage.test.ts`.
 
 ## Roadmap
 
-- undo / redo historie změn
-- koš a obnova stránek
-- přesouvání stránek ve stromu
-- sofistikovanější editor bloků a markdown shortcuts
-- import / export JSON a Markdown
-- synchronizace přes backend
-- multi-user workspace
+### Core
+
+- IndexedDB adapter
+- granular page/content persistence
+- recovery snapshoty
+- page history
+
+### Editor
+
+- image/file blocks
+- richer link UI
+- equation/LaTeX block
+- improved table controls
+- backlinks a page mentions
+
+### UX
+
+- animovaný page transition
+- drag & drop stromu stránek
+- reorder stabilizovaný přes persistent sort index
+- customizable typography a page appearance
+
+### Platform
+
+- Markdown / HTML export
+- offline service worker
+- backend adapter
+- multi-device sync
+- collaboration
 
 ## Licence
 
-Projekt je aktuálně bez explicitně deklarované open-source licence. Použití a další distribuce by měly vycházet z rozhodnutí vlastníka repozitáře, dokud nebude licence doplněna.
+Nupoo je distribuován pod licencí MIT. Viz `LICENSE`.
