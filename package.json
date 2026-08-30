@@ -1,7 +1,7 @@
 {
   "name": "nupoo",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,6 +16,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@tiptap/core": "^2.11.7",
     "@tiptap/extension-placeholder": "^2.11.7",
     "@tiptap/extension-task-item": "^2.11.7",
     "@tiptap/extension-task-list": "^2.11.7",
