@@ -1,7 +1,7 @@
 {
   "name": "nupoo",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -30,6 +30,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
