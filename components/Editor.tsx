@@ -7,7 +7,7 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type D
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { EditorContent, useEditor } from '@tiptap/react'
-import { Bold, Check, Code2, Copy, GripVertical, Heading, Highlighter, Italic, Link2, List, ListCheck, ListOrdered, Minus, Plus, Quote, Strikethrough, Table2, Trash2, Underline as UnderlineIcon } from 'lucide-react'
+import { Bold, Check, Code2, Copy, FileText, GripVertical, Heading, Highlighter, Italic, Link2, List, ListCheck, ListOrdered, Minus, Plus, Quote, Strikethrough, Table2, Trash2, Underline as UnderlineIcon } from 'lucide-react'
 import { blockContent, type Block, type BlockType, type Page } from '@/lib/storage'
 import { createEditorExtensions } from '@/lib/editor-extensions'
 
@@ -141,17 +141,8 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   useEffect(() => { setBlocks(page.blocks); setActiveBlockId(null); setContext(null) }, [page.id, page.blocks])
   const persist = (next: Block[]) => { setBlocks(next); onChange({ ...page, blocks: next, updatedAt: new Date().toISOString() }) }
-  const addAt = (index: number) => { const nextBlock: Block = { id: nanoid(), type: 'paragraph', text: '' , content: blockContent({ type: 'paragraph', text: '' } as Block) }; persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)]); setActiveBlockId(nextBlock.id) }
-  const duplicateBlock = (index: number) => {
-    const source = blocks[index]
-    if (!source) return
-    const duplicate: Block = source.content
-      ? { ...source, id: nanoid(), content: structuredClone(source.content) }
-      : { ...source, id: nanoid() }
-    persist([...blocks.slice(0, index + 1), duplicate, ...blocks.slice(index + 1)])
-    setActiveBlockId(duplicate.id)
-    setContext(null)
-  }
+  const addAt = (index: number) => { const nextBlock: Block = { id: nanoid(), type: 'paragraph', text: '', content: blockContent({ type: 'paragraph', text: '' } as Block) }; persist([...blocks.slice(0, index + 1), nextBlock, ...blocks.slice(index + 1)]); setActiveBlockId(nextBlock.id) }
+  const duplicateBlock = (index: number) => { const source = blocks[index]; if (!source) return; const duplicate: Block = source.content ? { ...source, id: nanoid(), content: structuredClone(source.content) } : { ...source, id: nanoid() }; persist([...blocks.slice(0, index + 1), duplicate, ...blocks.slice(index + 1)]); setActiveBlockId(duplicate.id); setContext(null) }
   const deleteBlock = (index: number) => { const next = blocks.filter((_, i) => i !== index); persist(next); setActiveBlockId(next[Math.min(index, next.length - 1)]?.id || null); setContext(null) }
   const changeBlockTypeFromContext = (type: BlockType) => {
     if (!contextBlock) return
@@ -167,7 +158,7 @@ export default function Editor({ page, onChange }: { page: Page; onChange: (page
   const contextBlock = contextIndex >= 0 ? blocks[contextIndex] : null
 
   return <article className="mx-auto max-w-4xl px-3 py-10 sm:px-5 md:px-10 md:py-16" onMouseDown={(event) => { const target = event.target as HTMLElement; if (!target.closest('.block-row') && !target.closest('.block-context-menu')) setActiveBlockId(null) }}>
-    <div className="mb-8 pl-[76px] md:pl-[84px]"><div className="mb-3 text-5xl">{page.icon || '📄'}</div><input value={page.title} onChange={(event) => onChange({ ...page, title: event.target.value, updatedAt: new Date().toISOString() })} className="w-full bg-transparent text-4xl font-bold tracking-tight outline-none placeholder:text-zinc-300 sm:text-5xl" placeholder="Bez názvu" /><div className="mt-2 text-xs text-zinc-400">{blocks.length} {blocks.length === 1 ? 'blok' : blocks.length < 5 ? 'bloky' : 'bloků'}</div></div>
+    <div className="mb-8 pl-[76px] md:pl-[84px]"><div className="page-title-row"><div className="page-title-icon" aria-hidden="true"><FileText size={30} strokeWidth={1.7} /></div><input value={page.title} onChange={(event) => onChange({ ...page, title: event.target.value, updatedAt: new Date().toISOString() })} className="page-title-input" placeholder="Bez názvu" aria-label="Název stránky" /></div><div className="mt-2 text-xs text-zinc-400">{blocks.length} {blocks.length === 1 ? 'blok' : blocks.length < 5 ? 'bloky' : 'bloků'}</div></div>
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drag}><SortableContext items={blocks.map((block) => block.id)} strategy={verticalListSortingStrategy}><div className="space-y-0.5">{blocks.map((block, index) => <Row key={block.id} block={block} active={activeBlockId === block.id} onActivate={() => { setActiveBlockId(block.id); setContext(null) }} onContextMenu={(event) => { event.preventDefault(); setActiveBlockId(block.id); const width = document.documentElement.clientWidth; const height = document.documentElement.clientHeight; setContext({ blockId: block.id, x: Math.min(event.clientX, Math.max(8, width - 238)), y: Math.min(event.clientY, Math.max(8, height - 360)) }) }} onAdd={() => addAt(index)} onUpdate={(update) => persist(blocks.map((item) => item.id === block.id ? { ...item, ...update } : item))} />)}</div></SortableContext></DndContext>
     <button type="button" onClick={() => addAt(Math.max(0, blocks.length - 1))} className="ml-[76px] mt-4 flex items-center gap-2 text-sm text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"><Plus size={13} /> Přidat blok</button>
     {context && contextBlock && <div className="block-context-menu fixed z-50" style={{ left: context.x, top: context.y }} onMouseDown={(event) => event.stopPropagation()}><div className="block-menu-title">{typeLabel(contextBlock)}</div><div className="block-context-grid"><button type="button" className="block-context-item" onClick={() => duplicateBlock(contextIndex)}><Copy size={12} /> Duplikovat</button><button type="button" className="block-context-item danger" onClick={() => deleteBlock(contextIndex)}><Trash2 size={12} /> Smazat</button></div><div className="block-menu-separator" /><div className="block-menu-title">Změnit typ</div>{BLOCK_TYPES.map((item) => <button key={item.type} type="button" className={`block-type-item ${contextBlock.type === item.type ? 'is-active' : ''}`} onClick={() => changeBlockTypeFromContext(item.type)}><span className="block-menu-icon">{item.icon}</span><span>{item.label}</span></button>)}</div>}
