@@ -39,7 +39,6 @@ export const createEditorExtensions = () => [
   CodeBlockLowlight.configure({
     lowlight,
     defaultLanguage: 'plaintext',
-    tabSize: 2,
   }),
   MarkdownShortcuts,
 ]
