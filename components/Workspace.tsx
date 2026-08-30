@@ -1,131 +1,49 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Check, FilePlus2, Focus, Loader2, Moon, PanelLeft, Plus, Redo2, Search, Star, Sun, Trash2, Undo2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Download, FilePlus2, Focus, Import, Loader2, Moon, PanelLeft, Plus, Redo2, Search, Star, Sun, Trash2, Undo2, Upload, X } from 'lucide-react'
 import { dataService } from '@/lib/data-service'
+import { downloadExport, parseImport } from '@/lib/export'
 import { useNupooStore } from '@/lib/store'
 import type { Page } from '@/lib/storage'
 import CommandPalette from './CommandPalette'
 import Editor from './Editor'
 import TrashDialog from './TrashDialog'
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'short' }).format(new Date(value))
-}
-
-function childrenOf(pages: Page[], parentId: string | null) {
-  return pages.filter((page) => (page.parentId ?? null) === parentId && !page.trashedAt).sort((a, b) => a.title.localeCompare(b.title, 'cs-CZ'))
-}
+function childrenOf(pages: Page[], parentId: string | null) { return pages.filter((page) => (page.parentId ?? null) === parentId && !page.trashedAt).sort((a, b) => a.title.localeCompare(b.title, 'cs-CZ')) }
 
 function PageTree({ pages, activeId, onSelect, onFavorite, onAddChild }: { pages: Page[]; activeId: string; onSelect: (id: string) => void; onFavorite: (id: string) => void; onAddChild: (id: string) => void }) {
-  const render = (parentId: string | null, depth = 0): React.ReactNode => childrenOf(pages, parentId).map((page) => {
-    const children = childrenOf(pages, page.id)
-    return <div key={page.id}>
-      <div className={`group flex items-center gap-1 rounded-lg pr-1 ${activeId === page.id ? 'bg-zinc-200 dark:bg-zinc-800' : 'hover:bg-zinc-100 dark:hover:bg-zinc-900'}`} style={{ marginLeft: depth * 10 }}>
-        <button onClick={() => onSelect(page.id)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"><span className="shrink-0">{page.icon || '📄'}</span><span className="min-w-0 flex-1 truncate">{page.title || 'Bez názvu'}</span>{page.favorite && <Star size={12} className="shrink-0 fill-current" />}</button>
-        <button onClick={() => onAddChild(page.id)} className="hidden rounded p-1 text-zinc-400 hover:text-zinc-900 group-hover:block dark:hover:text-white" title="Nová podstránka" aria-label="Nová podstránka"><Plus size={13} /></button>
-        <button onClick={() => onFavorite(page.id)} className={`rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white ${page.favorite ? '' : 'opacity-0 group-hover:opacity-100'}`} title={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'} aria-label={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}><Star size={12} className={page.favorite ? 'fill-current' : ''} /></button>
-      </div>
-      {children.length > 0 && render(page.id, depth + 1)}
-    </div>
-  })
+  const render = (parentId: string | null, depth = 0): React.ReactNode => childrenOf(pages, parentId).map((page) => { const children = childrenOf(pages, page.id); return <div key={page.id}><div className={`group flex items-center gap-1 rounded-lg pr-1 ${activeId === page.id ? 'bg-zinc-200 dark:bg-zinc-800' : 'hover:bg-zinc-100 dark:hover:bg-zinc-900'}`} style={{ marginLeft: depth * 10 }}><button onClick={() => onSelect(page.id)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"><span className="shrink-0">{page.icon || '📄'}</span><span className="min-w-0 flex-1 truncate">{page.title || 'Bez názvu'}</span>{page.favorite && <Star size={12} className="shrink-0 fill-current" />}</button><button onClick={() => onAddChild(page.id)} className="hidden rounded p-1 text-zinc-400 hover:text-zinc-900 group-hover:block dark:hover:text-white" title="Nová podstránka" aria-label="Nová podstránka"><Plus size={13} /></button><button onClick={() => onFavorite(page.id)} className={`rounded p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white ${page.favorite ? '' : 'opacity-0 group-hover:opacity-100'}`} title={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'} aria-label={page.favorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}><Star size={12} className={page.favorite ? 'fill-current' : ''} /></button></div>{children.length > 0 && render(page.id, depth + 1)}</div> })
   return <div>{render(null)}</div>
 }
 
 function Breadcrumbs({ pages, current, onSelect }: { pages: Page[]; current?: Page; onSelect: (id: string) => void }) {
-  const chain = useMemo(() => {
-    const result: Page[] = []
-    let page = current
-    const guard = new Set<string>()
-    while (page && !guard.has(page.id)) {
-      result.unshift(page)
-      guard.add(page.id)
-      page = page.parentId ? pages.find((item) => item.id === page?.parentId && !item.trashedAt) : undefined
-    }
-    return result
-  }, [pages, current])
+  const chain = useMemo(() => { const result: Page[] = []; let page = current; const seen = new Set<string>(); while (page && !seen.has(page.id)) { result.unshift(page); seen.add(page.id); page = page.parentId ? pages.find((item) => item.id === page?.parentId && !item.trashedAt) : undefined } return result }, [pages, current])
   return <div className="flex min-w-0 items-center gap-1 truncate text-xs text-zinc-400">{chain.map((page, index) => <span key={page.id} className="flex min-w-0 items-center gap-1"><button onClick={() => onSelect(page.id)} className="max-w-[180px] truncate hover:text-zinc-900 dark:hover:text-white">{page.title || 'Bez názvu'}</button>{index < chain.length - 1 && <span>/</span>}</span>)}</div>
 }
 
 export default function Workspace({ initialPageId }: { initialPageId?: string } = {}) {
-  const pages = useNupooStore((state) => state.pages)
-  const trash = useNupooStore((state) => state.trash)
-  const activePageId = useNupooStore((state) => state.activePageId)
-  const sidebarOpen = useNupooStore((state) => state.sidebarOpen)
-  const focusMode = useNupooStore((state) => state.focusMode)
-  const dark = useNupooStore((state) => state.dark)
-  const searchOpen = useNupooStore((state) => state.searchOpen)
-  const query = useNupooStore((state) => state.query)
-  const saveState = useNupooStore((state) => state.saveState)
-  const hydrated = useNupooStore((state) => state.hydrated)
-  const canUndo = useNupooStore((state) => state.canUndo)
-  const canRedo = useNupooStore((state) => state.canRedo)
-  const initialize = useNupooStore((state) => state.initialize)
-  const selectPage = useNupooStore((state) => state.selectPage)
-  const createPage = useNupooStore((state) => state.createPage)
-  const updatePage = useNupooStore((state) => state.updatePage)
-  const deletePage = useNupooStore((state) => state.deletePage)
-  const restorePage = useNupooStore((state) => state.restorePage)
-  const permanentlyDeletePage = useNupooStore((state) => state.permanentlyDeletePage)
-  const emptyTrash = useNupooStore((state) => state.emptyTrash)
-  const undo = useNupooStore((state) => state.undo)
-  const redo = useNupooStore((state) => state.redo)
-  const toggleFavorite = useNupooStore((state) => state.toggleFavorite)
-  const setSidebarOpen = useNupooStore((state) => state.setSidebarOpen)
-  const toggleFocusMode = useNupooStore((state) => state.toggleFocusMode)
-  const toggleDark = useNupooStore((state) => state.toggleDark)
-  const setSearchOpen = useNupooStore((state) => state.setSearchOpen)
-  const setQuery = useNupooStore((state) => state.setQuery)
-  const setSaveState = useNupooStore((state) => state.setSaveState)
-  const [mobileSidebar, setMobileSidebar] = useState(false)
-  const [trashOpen, setTrashOpen] = useState(false)
+  const pages = useNupooStore((state) => state.pages); const trash = useNupooStore((state) => state.trash); const activePageId = useNupooStore((state) => state.activePageId); const sidebarOpen = useNupooStore((state) => state.sidebarOpen); const focusMode = useNupooStore((state) => state.focusMode); const dark = useNupooStore((state) => state.dark); const searchOpen = useNupooStore((state) => state.searchOpen); const query = useNupooStore((state) => state.query); const saveState = useNupooStore((state) => state.saveState); const hydrated = useNupooStore((state) => state.hydrated); const canUndo = useNupooStore((state) => state.canUndo); const canRedo = useNupooStore((state) => state.canRedo)
+  const initialize = useNupooStore((state) => state.initialize); const selectPage = useNupooStore((state) => state.selectPage); const createPage = useNupooStore((state) => state.createPage); const updatePage = useNupooStore((state) => state.updatePage); const deletePage = useNupooStore((state) => state.deletePage); const restorePage = useNupooStore((state) => state.restorePage); const permanentlyDeletePage = useNupooStore((state) => state.permanentlyDeletePage); const emptyTrash = useNupooStore((state) => state.emptyTrash); const replaceWorkspace = useNupooStore((state) => state.replaceWorkspace); const undo = useNupooStore((state) => state.undo); const redo = useNupooStore((state) => state.redo); const toggleFavorite = useNupooStore((state) => state.toggleFavorite); const setSidebarOpen = useNupooStore((state) => state.setSidebarOpen); const toggleFocusMode = useNupooStore((state) => state.toggleFocusMode); const toggleDark = useNupooStore((state) => state.toggleDark); const setSearchOpen = useNupooStore((state) => state.setSearchOpen); const setQuery = useNupooStore((state) => state.setQuery); const setSaveState = useNupooStore((state) => state.setSaveState)
+  const [mobileSidebar, setMobileSidebar] = useState(false); const [trashOpen, setTrashOpen] = useState(false); const importRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const pathId = window.location.pathname.startsWith('/page/') ? decodeURIComponent(window.location.pathname.slice(6)) : ''
-    initialize(initialPageId || params.get('page') || pathId || undefined)
-  }, [initialPageId, initialize])
-
+  useEffect(() => { const params = new URLSearchParams(window.location.search); const pathId = window.location.pathname.startsWith('/page/') ? decodeURIComponent(window.location.pathname.slice(6)) : ''; initialize(initialPageId || params.get('page') || pathId || undefined) }, [initialPageId, initialize])
   useEffect(() => { document.documentElement.classList.toggle('dark', dark) }, [dark])
-
-  useEffect(() => {
-    if (!hydrated) return
-    setSaveState('saving')
-    const timer = window.setTimeout(() => { dataService.save(pages); dataService.saveTrash(trash); setSaveState('saved') }, 450)
-    return () => window.clearTimeout(timer)
-  }, [pages, trash, hydrated, setSaveState])
-
-  useEffect(() => {
-    if (!hydrated || !activePageId) return
-    const url = new URL(window.location.href)
-    url.searchParams.set('page', activePageId)
-    window.history.replaceState(null, '', `${url.pathname}${url.search}`)
-  }, [activePageId, hydrated])
-
-  useEffect(() => {
-    const keyboard = (event: KeyboardEvent) => {
-      const mod = event.metaKey || event.ctrlKey
-      if (mod && event.key.toLowerCase() === 'k') { event.preventDefault(); setSearchOpen(true) }
-      else if (mod && event.key.toLowerCase() === 'n') { event.preventDefault(); selectPage(createPage(null)) }
-      else if (mod && event.key.toLowerCase() === 'z' && !event.shiftKey) { event.preventDefault(); undo() }
-      else if ((mod && event.key.toLowerCase() === 'y') || (mod && event.shiftKey && event.key.toLowerCase() === 'z')) { event.preventDefault(); redo() }
-      else if (mod && event.shiftKey && event.key.toLowerCase() === 'f') { event.preventDefault(); toggleFocusMode() }
-      else if (event.key === 'Escape') { setSearchOpen(false); setTrashOpen(false) }
-    }
-    window.addEventListener('keydown', keyboard)
-    return () => window.removeEventListener('keydown', keyboard)
-  }, [createPage, redo, selectPage, setSearchOpen, toggleFocusMode, undo])
+  useEffect(() => { if (!hydrated) return; setSaveState('saving'); const timer = window.setTimeout(() => { dataService.save(pages); dataService.saveTrash(trash); setSaveState('saved') }, 450); return () => window.clearTimeout(timer) }, [pages, trash, hydrated, setSaveState])
+  useEffect(() => { if (!hydrated || !activePageId) return; const url = new URL(window.location.href); url.searchParams.set('page', activePageId); window.history.replaceState(null, '', `${url.pathname}${url.search}`) }, [activePageId, hydrated])
+  useEffect(() => { const keyboard = (event: KeyboardEvent) => { const mod = event.metaKey || event.ctrlKey; if (mod && event.key.toLowerCase() === 'k') { event.preventDefault(); setSearchOpen(true) } else if (mod && event.key.toLowerCase() === 'n') { event.preventDefault(); selectPage(createPage(null)) } else if (mod && event.key.toLowerCase() === 'z' && !event.shiftKey) { event.preventDefault(); undo() } else if ((mod && event.key.toLowerCase() === 'y') || (mod && event.shiftKey && event.key.toLowerCase() === 'z')) { event.preventDefault(); redo() } else if (mod && event.shiftKey && event.key.toLowerCase() === 'f') { event.preventDefault(); toggleFocusMode() } else if (event.key === 'Escape') { setSearchOpen(false); setTrashOpen(false) } }; window.addEventListener('keydown', keyboard); return () => window.removeEventListener('keydown', keyboard) }, [createPage, redo, selectPage, setSearchOpen, toggleFocusMode, undo])
 
   const current = pages.find((page) => page.id === activePageId)
   const favoriteCount = pages.filter((page) => page.favorite).length
   const recent = useMemo(() => [...pages].filter((page) => !page.trashedAt && page.id !== activePageId).sort((a, b) => (b.lastOpenedAt || b.updatedAt).localeCompare(a.lastOpenedAt || a.updatedAt)).slice(0, 5), [pages, activePageId])
-
   const handleCreate = (parentId: string | null = null) => { selectPage(createPage(parentId)); setMobileSidebar(false) }
   const navigate = (id: string) => { selectPage(id); setMobileSidebar(false) }
+  const importWorkspace = async (file: File) => { const parsed = parseImport(await file.text()); if (!parsed || parsed.pages.length === 0) return; replaceWorkspace(parsed.pages, parsed.trash, parsed.pages[0]?.id); setSaveState('saved') }
 
   if (!hydrated) return <div className="grid min-h-screen place-items-center bg-white text-sm text-zinc-400 dark:bg-zinc-950">Načítání…</div>
 
   return <div className={`flex min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 ${focusMode ? 'focus-mode' : ''}`}>
+    <input ref={importRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importWorkspace(file); event.target.value = '' }} />
     {!focusMode && sidebarOpen && <>
       <aside className="hidden w-72 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50/80 md:flex dark:border-zinc-800 dark:bg-zinc-900/50">
         <div className="flex items-center gap-2 px-3 py-3 text-sm font-semibold"><div className="grid size-7 place-items-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-black">N</div><span>Nupoo</span><span className="ml-auto text-[10px] font-normal text-zinc-400">LOCAL</span></div>
@@ -135,33 +53,19 @@ export default function Workspace({ initialPageId }: { initialPageId?: string } 
         <div className="border-t border-zinc-200 p-2 dark:border-zinc-800">
           {recent.length > 0 && <div className="mb-2"><div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Nedávné</div>{recent.map((page) => <button key={page.id} onClick={() => navigate(page.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800"><span>{page.icon || '📄'}</span><span className="min-w-0 flex-1 truncate text-left">{page.title}</span></button>)}</div>}
           <button onClick={() => setTrashOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"><Trash2 size={15} /> Koš {trash.length > 0 && <span className="ml-auto text-xs text-zinc-400">{trash.length}</span>}</button>
+          <button onClick={() => downloadExport(pages, trash)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"><Download size={15} /> Exportovat</button>
+          <button onClick={() => importRef.current?.click()} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"><Upload size={15} /> Importovat</button>
           <div className="mb-1 mt-1 flex items-center gap-2 px-2 py-1 text-[11px] text-zinc-400"><Star size={12} className="fill-current" /> {favoriteCount} oblíbených</div>
           <button className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800" onClick={toggleDark}>{dark ? <Sun size={16} /> : <Moon size={16} />} {dark ? 'Světlý režim' : 'Tmavý režim'}</button>
         </div>
       </aside>
       {mobileSidebar && <div className="fixed inset-0 z-40 bg-black/30 md:hidden" onMouseDown={() => setMobileSidebar(false)}><aside className="h-full w-[86%] max-w-sm overflow-auto border-r border-zinc-200 bg-white p-3 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onMouseDown={(event) => event.stopPropagation()}><div className="mb-4 flex items-center justify-between text-sm font-semibold"><span>Nupoo</span><button onClick={() => setMobileSidebar(false)} className="rounded p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Zavřít menu"><X size={18} /></button></div><button onClick={() => handleCreate(null)} className="mb-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"><Plus size={16} /> Nová stránka</button><button onClick={() => setSearchOpen(true)} className="mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"><Search size={16} /> Hledat</button><PageTree pages={pages} activeId={activePageId} onSelect={navigate} onFavorite={toggleFavorite} onAddChild={(id) => handleCreate(id)} /><button onClick={() => setTrashOpen(true)} className="mt-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"><Trash2 size={15} /> Koš</button></aside></div>}
     </>}
-
     <main className="min-w-0 flex-1">
-      {!focusMode && <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-white/85 px-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85">
-        <button className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:hidden" onClick={() => setMobileSidebar(true)} aria-label="Otevřít menu"><PanelLeft size={17} /></button>
-        <button className="hidden rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:block" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Přepnout postranní panel"><PanelLeft size={17} /></button>
-        <Breadcrumbs pages={pages} current={current} onSelect={navigate} />
-        <div className="flex-1" />
-        <div className="hidden items-center gap-1 sm:flex">
-          <button disabled={!canUndo} onClick={undo} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-900" title="Zpět"><Undo2 size={15} /></button>
-          <button disabled={!canRedo} onClick={redo} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-900" title="Znovu"><Redo2 size={15} /></button>
-        </div>
-        <div className="hidden items-center gap-1 text-[11px] text-zinc-400 lg:flex">{saveState === 'saving' ? <><Loader2 size={12} className="animate-spin" /> Ukládám</> : saveState === 'saved' ? <><Check size={12} /> Uloženo</> : null}</div>
-        <button onClick={() => setSearchOpen(true)} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Hledat"><Search size={17} /></button>
-        <button onClick={toggleFocusMode} className="hidden rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 sm:block" aria-label="Focus mode" title="Focus mode"><Focus size={16} /></button>
-        <button onClick={toggleDark} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Přepnout režim">{dark ? <Sun size={17} /> : <Moon size={17} />}</button>
-        {current && current.id !== 'welcome' && <button onClick={() => deletePage(current.id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" aria-label="Přesunout do koše"><Trash2 size={16} /></button>}
-      </header>}
-      {focusMode && <button onClick={toggleFocusMode} className="fixed right-4 top-4 z-40 rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-500 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80" title="Ukončit focus mode"><Focus size={13} className="mr-1 inline" /> Ukončit focus</button>}
+      {!focusMode && <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-zinc-200 bg-white/85 px-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85"><button className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:hidden" onClick={() => setMobileSidebar(true)} aria-label="Otevřít menu"><PanelLeft size={17} /></button><button className="hidden rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 md:block" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Přepnout postranní panel"><PanelLeft size={17} /></button><Breadcrumbs pages={pages} current={current} onSelect={navigate} /><div className="flex-1" /><div className="hidden items-center gap-1 sm:flex"><button disabled={!canUndo} onClick={undo} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-900" title="Zpět"><Undo2 size={15} /></button><button disabled={!canRedo} onClick={redo} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-900" title="Znovu"><Redo2 size={15} /></button></div><div className="hidden items-center gap-1 text-[11px] text-zinc-400 lg:flex">{saveState === 'saving' ? <><Loader2 size={12} className="animate-spin" /> Ukládám</> : saveState === 'saved' ? <><Check size={12} /> Uloženo</> : null}</div><button onClick={() => setSearchOpen(true)} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Hledat"><Search size={17} /></button><button onClick={toggleFocusMode} className="hidden rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 sm:block" aria-label="Focus mode" title="Focus mode"><Focus size={16} /></button><button onClick={toggleDark} className="rounded-md p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900" aria-label="Přepnout režim">{dark ? <Sun size={17} /> : <Moon size={17} />}</button>{current && current.id !== 'welcome' && <button onClick={() => deletePage(current.id)} className="rounded-md p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" aria-label="Přesunout do koše"><Trash2 size={16} /></button>}</header>}
+      {focusMode && <button onClick={toggleFocusMode} className="fixed right-4 top-4 z-40 rounded-lg border border-zinc-200 bg-white/80 px-3 py-1.5 text-xs text-zinc-500 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80"><Focus size={13} className="mr-1 inline" /> Ukončit focus</button>}
       {current && !current.trashedAt ? <Editor page={current} onChange={updatePage} /> : <div className="p-12 text-sm text-zinc-500">Stránka nebyla nalezena.</div>}
     </main>
-
     {searchOpen && <CommandPalette pages={pages} query={query} dark={dark} canUndo={canUndo} canRedo={canRedo} onQuery={setQuery} onClose={() => setSearchOpen(false)} onSelect={navigate} onCreate={() => { setSearchOpen(false); handleCreate(null) }} onToggleFavorite={() => { if (current) toggleFavorite(current.id) }} onTrash={() => { setSearchOpen(false); setTrashOpen(true) }} onUndo={undo} onRedo={redo} onToggleFocus={() => { setSearchOpen(false); toggleFocusMode() }} onToggleTheme={toggleDark} />}
     {trashOpen && <TrashDialog trash={trash} onRestore={(id) => { restorePage(id); setTrashOpen(false) }} onDelete={permanentlyDeletePage} onEmpty={emptyTrash} onClose={() => setTrashOpen(false)} />}
   </div>
