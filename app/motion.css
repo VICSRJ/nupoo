@@ -1,134 +1,44 @@
-:root {
-  --motion-fast: 120ms;
-  --motion-base: 180ms;
-  --motion-slow: 260ms;
-  --motion-ease: cubic-bezier(.22,1,.36,1);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .motion-control,
-  .page-tree-item,
-  .page-tree-chevron,
-  .page-tree-action,
-  .block-control,
-  .inline-tool,
-  .page-title-icon {
+@layer components {
+  .motion-control {
     transition:
-      transform var(--motion-fast) var(--motion-ease),
-      background-color var(--motion-base) ease,
-      border-color var(--motion-base) ease,
-      box-shadow var(--motion-base) ease,
-      color var(--motion-base) ease,
-      opacity var(--motion-base) ease;
+      transform 160ms cubic-bezier(.22, 1, .36, 1),
+      box-shadow 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      opacity 160ms ease;
   }
 
-  .page-tree-item:hover {
-    transform: translateX(1px);
+  .motion-control:hover { transform: translateY(-1px); }
+  .motion-control:active { transform: translateY(0) scale(.975); }
+
+  .motion-pop { animation: nupoo-pop 180ms cubic-bezier(.22, 1, .36, 1) both; }
+  .motion-settle { animation: nupoo-settle 220ms cubic-bezier(.22, 1, .36, 1) both; }
+  .motion-fade-up { animation: nupoo-fade-up 220ms cubic-bezier(.22, 1, .36, 1) both; }
+
+  @keyframes nupoo-pop {
+    from { opacity: 0; transform: translateY(3px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  .page-tree-action:hover,
-  .page-tree-chevron:hover,
-  .block-control:hover,
-  .inline-tool:hover {
-    transform: translateY(-1px);
+  @keyframes nupoo-settle {
+    from { opacity: 0; transform: translateX(-3px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
-  .page-tree-action:active,
-  .page-tree-chevron:active,
-  .block-control:active,
-  .inline-tool:active {
-    transform: translateY(0) scale(.96);
+  @keyframes nupoo-fade-up {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-
-  .page-title-icon {
-    transition-duration: 220ms;
-  }
-
-  .page-title-row:focus-within .page-title-icon {
-    transform: translateY(-1px) scale(1.015);
-  }
-
-  header.sticky {
-    transition: box-shadow var(--motion-slow) ease, background-color var(--motion-slow) ease, border-color var(--motion-base) ease;
-  }
-
-  header.sticky:hover {
-    box-shadow: 0 8px 26px hsl(var(--foreground) / .055);
-  }
-
-  .block-row {
-    transition: background-color var(--motion-base) ease, box-shadow var(--motion-base) ease, transform 180ms var(--motion-ease);
-  }
-
-  .block-row:hover {
-    transform: translateX(1px);
-  }
-
-  .inline-toolbar {
-    animation: nupoo-toolbar-in 140ms var(--motion-ease) both;
-  }
-
-  .page-tree-item.is-active {
-    animation: nupoo-active-in 180ms var(--motion-ease) both;
-  }
-
-  .motion-pop {
-    animation: nupoo-pop 180ms var(--motion-ease) both;
-  }
-
-  .motion-settle {
-    animation: nupoo-settle 220ms var(--motion-ease) both;
-  }
-
-  .motion-fade-up {
-    animation: nupoo-fade-up 220ms var(--motion-ease) both;
-  }
-}
-
-@keyframes nupoo-toolbar-in {
-  from { opacity: 0; transform: translateY(3px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes nupoo-active-in {
-  from { box-shadow: 0 0 0 hsl(var(--foreground) / 0); }
-  to { box-shadow: 0 3px 12px hsl(var(--foreground) / .08); }
-}
-
-@keyframes nupoo-pop {
-  from { opacity: 0; transform: translateY(3px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes nupoo-settle {
-  from { opacity: 0; transform: translateX(-3px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes nupoo-fade-up {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .motion-control,
   .motion-pop,
   .motion-settle,
-  .motion-fade-up,
-  .inline-toolbar,
-  .page-tree-item.is-active {
-    animation: none !important;
-  }
-
-  .motion-control,
-  .page-tree-item,
-  .page-tree-chevron,
-  .page-tree-action,
-  .block-control,
-  .inline-tool,
-  .page-title-icon,
-  header.sticky,
-  .block-row {
+  .motion-fade-up {
     transition: none !important;
+    animation: none !important;
     transform: none !important;
   }
 }
