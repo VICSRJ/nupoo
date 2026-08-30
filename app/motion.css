@@ -1,0 +1,91 @@
+:root {
+  --neo-light: rgba(255,255,255,.72);
+  --neo-light-shadow: 4px 4px 10px rgba(24,24,27,.055), -3px -3px 8px rgba(255,255,255,.78);
+  --neo-dark: rgba(24,24,27,.62);
+  --neo-dark-shadow: 4px 4px 12px rgba(0,0,0,.22), -3px -3px 8px rgba(255,255,255,.018);
+  --motion-fast: 140ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button:not(.tiptap button),
+  [role="button"] {
+    transition:
+      transform var(--motion-fast) cubic-bezier(.22,1,.36,1),
+      background-color var(--motion-base) ease,
+      border-color var(--motion-base) ease,
+      box-shadow var(--motion-base) ease,
+      color var(--motion-base) ease,
+      opacity var(--motion-base) ease;
+  }
+
+  button:not(.tiptap button):hover,
+  [role="button"]:hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(.tiptap button):active,
+  [role="button"]:active {
+    transform: translateY(0) scale(.975);
+  }
+
+  header.sticky {
+    box-shadow: 0 1px 0 rgba(24,24,27,.025), 0 5px 18px rgba(24,24,27,.025);
+    transition: box-shadow var(--motion-slow) ease, background-color var(--motion-slow) ease;
+  }
+
+  aside {
+    transition: box-shadow var(--motion-slow) ease, border-color var(--motion-base) ease, background-color var(--motion-base) ease;
+  }
+
+  .page-title-icon,
+  .block-control,
+  .inline-tool,
+  .page-tree-chevron,
+  .page-tree-action {
+    box-shadow: var(--neo-light-shadow);
+  }
+
+  .page-title-icon:active,
+  .block-control:active,
+  .inline-tool:active,
+  .page-tree-chevron:active,
+  .page-tree-action:active {
+    box-shadow: inset 2px 2px 5px rgba(24,24,27,.07), inset -2px -2px 5px rgba(255,255,255,.72);
+  }
+
+  .page-tree-item:not(.is-active):hover {
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.035), 0 2px 9px rgba(0,0,0,.055);
+  }
+
+  .block-row {
+    transition: background-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+  }
+
+  .block-row:hover {
+    box-shadow: inset 0 0 0 1px rgba(161,161,170,.045);
+  }
+
+  .dark .page-title-icon,
+  .dark .block-control,
+  .dark .inline-tool,
+  .dark .page-tree-chevron,
+  .dark .page-tree-action {
+    box-shadow: var(--neo-dark-shadow);
+  }
+
+  .dark .page-tree-item:not(.is-active):hover {
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.025), 0 2px 12px rgba(0,0,0,.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  [role="button"],
+  header.sticky,
+  aside,
+  .block-row {
+    transition: none !important;
+  }
+}
