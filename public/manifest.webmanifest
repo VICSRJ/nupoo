@@ -1,0 +1,12 @@
+{
+  "name": "Nupoo — Local Workspace",
+  "short_name": "Nupoo",
+  "description": "Lehký lokální blokový workspace.",
+  "start_url": "/nupoo/",
+  "scope": "/nupoo/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "lang": "cs",
+  "icons": []
+}
