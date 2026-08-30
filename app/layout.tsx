@@ -1,6 +1,4 @@
 import './globals.css'
-import './nupoo-polish.css'
-import './neumorphism.css'
 import './motion.css'
 import './shadcn-theme.css'
 import type { Metadata, Viewport } from 'next'
@@ -20,9 +18,14 @@ export const viewport: Viewport = {
   themeColor: '#09090b',
 }
 
+const themeInit = `(() => { try { const saved = localStorage.getItem('nupoo.theme'); const dark = saved === null ? true : saved === 'dark'; document.documentElement.classList.toggle('dark', dark); document.documentElement.style.colorScheme = dark ? 'dark' : 'light'; } catch (_) { document.documentElement.classList.add('dark'); document.documentElement.style.colorScheme = 'dark'; } })()`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="cs">
+    <html lang="cs" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+      </head>
       <body>
         {children}
         <ServiceWorkerRegister />
