@@ -42,7 +42,7 @@ let historyPast: Page[][] = []
 let historyFuture: Page[][] = []
 let lastHistoryAt = 0
 let lastHistoryPageId = ''
-const snapshot = (pages: Page[]) => pages.map((page) => ({ ...page, blocks: page.blocks.map((block) => ({ ...block, content: block.content ? structuredClone(block.content) : undefined })) }))
+const snapshot = (pages: Page[]) => pages.map((page) => ({ ...page, blocks: page.blocks.map((block) => ({ ...block, ...(block.content ? { content: structuredClone(block.content) } : {}) })) }))
 
 export const useNupooStore = create<NupooStore>((set, get) => ({
   pages: [], trash: [], activePageId: '', sidebarOpen: true, focusMode: false, dark: false, searchOpen: false, query: '', saveState: 'idle', hydrated: false, canUndo: false, canRedo: false,
