@@ -52,13 +52,26 @@ function normalizeBlock(value: unknown): Block | null {
   if (typeof block.id !== 'string' || typeof block.type !== 'string') return null
   const type = block.type as BlockType
   if (!['paragraph', 'heading', 'bulletList', 'orderedList', 'taskList', 'blockquote', 'codeBlock', 'horizontalRule', 'table'].includes(type)) return null
-  return { id: block.id, type, text: typeof block.text === 'string' ? block.text : '', level: type === 'heading' && (block.level === 1 || block.level === 2 || block.level === 3) ? block.level : undefined, content: isJSONContent(block.content) ? block.content : undefined }
+  const level = type === 'heading' && (block.level === 1 || block.level === 2 || block.level === 3) ? block.level : undefined
+  const content = isJSONContent(block.content) ? block.content : undefined
+  return { id: block.id, type, text: typeof block.text === 'string' ? block.text : '', ...(level ? { level } : {}), ...(content ? { content } : {}) }
 }
 function normalizePage(value: unknown): Page | null {
   if (!value || typeof value !== 'object') return null
   const page = value as Partial<Page>
   if (typeof page.id !== 'string' || typeof page.title !== 'string' || !Array.isArray(page.blocks) || typeof page.updatedAt !== 'string') return null
-  return { id: page.id, title: page.title, icon: typeof page.icon === 'string' ? page.icon : '📄', favorite: Boolean(page.favorite), parentId: typeof page.parentId === 'string' ? page.parentId : null, blocks: page.blocks.map(normalizeBlock).filter((block): block is Block => !!block), createdAt: typeof page.createdAt === 'string' ? page.createdAt : page.updatedAt, updatedAt: page.updatedAt, lastOpenedAt: typeof page.lastOpenedAt === 'string' ? page.lastOpenedAt : page.updatedAt, trashedAt: typeof page.trashedAt === 'string' ? page.trashedAt : null }
+  return {
+    id: page.id,
+    title: page.title,
+    icon: typeof page.icon === 'string' ? page.icon : '📄',
+    favorite: Boolean(page.favorite),
+    parentId: typeof page.parentId === 'string' ? page.parentId : null,
+    blocks: page.blocks.map(normalizeBlock).filter((block): block is Block => !!block),
+    createdAt: typeof page.createdAt === 'string' ? page.createdAt : page.updatedAt,
+    updatedAt: page.updatedAt,
+    lastOpenedAt: typeof page.lastOpenedAt === 'string' ? page.lastOpenedAt : page.updatedAt,
+    trashedAt: typeof page.trashedAt === 'string' ? page.trashedAt : null,
+  }
 }
 function parse(raw: string | null): Page[] { if (!raw) return []; try { const parsed: unknown = JSON.parse(raw); return Array.isArray(parsed) ? parsed.map(normalizePage).filter((page): page is Page => !!page) : [] } catch { return [] } }
 function read(key: string): Page[] { try { return parse(window.localStorage.getItem(key)) } catch { return [] } }
