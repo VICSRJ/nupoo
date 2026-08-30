@@ -19,20 +19,18 @@ export const MarkdownShortcuts = Extension.create({
         const { $from } = editor.state.selection
         const text = $from.parent.textContent
         const start = $from.start()
-        const from = $from.pos - text.length
-        const deleteTrigger = (length: number) => editor.commands.deleteRange({ from: Math.max(start, $from.pos - length), to: $from.pos })
 
         if (/^\[ \]$/.test(text)) {
-          deleteTrigger(3)
+          if (!editor.commands.deleteRange({ from: start, to: $from.pos })) return false
           return editor.commands.toggleTaskList()
         }
 
         if (/^---$/.test(text)) {
-          deleteTrigger(3)
+          if (!editor.commands.deleteRange({ from: start, to: $from.pos })) return false
           return editor.commands.setHorizontalRule()
         }
 
-        return from < start ? false : false
+        return false
       },
     }
   },
